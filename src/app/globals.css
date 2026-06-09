@@ -1,4 +1,8 @@
 @import "tailwindcss";
+
+/* Ensure Tailwind scans all app source files in production builds */
+@source "../../src/**/*.{js,ts,jsx,tsx,mdx}";
+
 @import "leaflet/dist/leaflet.css";
 
 :root {
