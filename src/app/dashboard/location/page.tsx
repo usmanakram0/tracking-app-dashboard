@@ -11,7 +11,9 @@ import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { formatTimestamp } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -55,6 +57,7 @@ export default function LocationPage() {
     { page, search: debouncedSearch }
   );
   const deleteLocations = useDeleteLocations(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const locations = locationsResult?.items ?? [];
   const totalCount = locationsResult?.totalCount ?? 0;
@@ -88,19 +91,29 @@ export default function LocationPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
       const result = await deleteLocations.mutateAsync(ids);
       setSelectedIds(new Set());
       setDeleteMessage(`Deleted ${result.deleted} location point(s).`);
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected locations'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -125,7 +138,7 @@ export default function LocationPage() {
       />
 
       {locationsLoading ? (
-        <div className="flex h-[360px] items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-900/50 sm:h-[420px]">
+        <div className="flex h-[280px] items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-900/50 sm:h-[360px] lg:h-[420px]">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-400/60" />
         </div>
       ) : (
@@ -142,7 +155,7 @@ export default function LocationPage() {
               pageItemCount={locations.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteLocations.isPending}
               selectAllLabel="Select page"
             />
@@ -180,7 +193,7 @@ export default function LocationPage() {
             return (
               <div
                 key={loc.id}
-                className={`grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 px-4 py-3.5 transition-colors duration-200 sm:px-6 ${
+                className={`portal-list-row flex items-start gap-2.5 px-4 py-3.5 transition-colors duration-200 sm:items-center sm:gap-3 sm:px-6 ${
                   isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
                 }`}
               >
@@ -191,17 +204,20 @@ export default function LocationPage() {
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-400">
                   {totalCount - listOffset - index}
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-200">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-200">
                     {childNameMap[loc.device_id] || 'Device'}
                   </p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="mt-0.5 break-words text-xs leading-relaxed text-slate-500">
                     {loc.latitude.toFixed(5)}, {loc.longitude.toFixed(5)}
                     {loc.accuracy ? ` · ±${loc.accuracy.toFixed(0)}m` : ''}
                     {loc.address ? ` · ${loc.address}` : ''}
                   </p>
+                  <p className="mt-1 text-[11px] text-slate-600 sm:hidden">
+                    {formatTimestamp(loc.recorded_at)}
+                  </p>
                 </div>
-                <p className="shrink-0 whitespace-nowrap text-[11px] text-slate-600">
+                <p className="hidden shrink-0 whitespace-nowrap text-[11px] text-slate-600 sm:block">
                   {formatTimestamp(loc.recorded_at)}
                 </p>
               </div>
@@ -221,6 +237,16 @@ export default function LocationPage() {
           isLoading={locationsLoading}
         />
       </Card>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete location points?"
+        description={`Delete ${selectedIds.size} GPS point(s) from the trail? This cannot be undone.`}
+        confirmLabel="Delete locations"
+        isLoading={deleteLocations.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

@@ -13,7 +13,9 @@ import {
   Square,
 } from 'lucide-react';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -66,6 +68,7 @@ export default function GalleryPage() {
   const currentPage = mediaResult?.page ?? 1;
   const { data: quota } = useGalleryQuota(parentId);
   const deleteMedia = useDeleteGalleryMedia(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -97,9 +100,17 @@ export default function GalleryPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
@@ -111,10 +122,12 @@ export default function GalleryPage() {
       setDeleteMessage(
         `Deleted ${result.deleted} item(s). Sync may resume if storage was full.`
       );
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected media'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -182,7 +195,7 @@ export default function GalleryPage() {
               pageItemCount={media.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteMedia.isPending}
               selectAllLabel="Select page"
             />
@@ -301,6 +314,16 @@ export default function GalleryPage() {
         />
       </Card>
 
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete gallery media?"
+        description={`Delete ${selectedIds.size} photo or video(s) from storage? This cannot be undone and may free space for new syncs.`}
+        confirmLabel="Delete media"
+        isLoading={deleteMedia.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
+
       {previewItem && previewUrl && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
@@ -310,18 +333,18 @@ export default function GalleryPage() {
             className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-slate-200">
+            <div className="flex flex-col gap-3 border-b border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="break-words text-sm font-medium text-slate-200">
                   {childNameMap[previewItem.device_id]} · {previewItem.media_type}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-slate-500">
                   {formatTimestamp(previewItem.captured_at)} · {formatBytes(previewItem.file_size_bytes)}
                 </p>
               </div>
               <button
                 onClick={() => setPreviewItem(null)}
-                className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                className="w-full rounded-lg px-3 py-2 text-xs text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 sm:w-auto sm:py-1.5"
               >
                 Close
               </button>

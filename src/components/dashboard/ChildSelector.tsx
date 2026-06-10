@@ -40,7 +40,7 @@ export function ChildSelector({
           <div className="portal-flex-wrap flex flex-wrap gap-2">
             <button
               onClick={() => onSelect(null)}
-              className={`portal-pill rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              className={`portal-pill rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm ${
                 selectedDeviceId === null
                   ? 'portal-pill-active-blue bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
                   : 'portal-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -55,7 +55,7 @@ export function ChildSelector({
                 <button
                   key={device.device_id}
                   onClick={() => onSelect(device.device_id)}
-                  className={`portal-pill rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  className={`portal-pill rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 sm:px-4 sm:py-2 sm:text-sm ${
                     isSelected
                       ? 'portal-pill-active-emerald bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40'
                       : 'portal-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'

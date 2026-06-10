@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Loader2, MessageSquare } from 'lucide-react';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -105,6 +107,7 @@ export default function SmsPage() {
   const currentPage = smsResult?.page ?? 1;
   const { data: quota } = useSmsQuota(parentId);
   const deleteSms = useDeleteSmsMessages(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -141,9 +144,17 @@ export default function SmsPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
@@ -152,10 +163,12 @@ export default function SmsPage() {
       setDeleteMessage(
         `Deleted ${result.deleted} message(s). Sync may resume if storage was full.`
       );
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected messages'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -219,7 +232,7 @@ export default function SmsPage() {
               pageItemCount={smsList.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteSms.isPending}
               selectAllLabel="Select page"
             />
@@ -345,6 +358,16 @@ export default function SmsPage() {
           isLoading={smsLoading}
         />
       </Card>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete SMS messages?"
+        description={`Delete ${selectedIds.size} SMS message(s)? This cannot be undone and may free storage quota.`}
+        confirmLabel="Delete messages"
+        isLoading={deleteSms.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

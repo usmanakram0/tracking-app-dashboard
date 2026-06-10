@@ -2,28 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  Activity,
-  Contact,
-  Headphones,
-  Images,
-  LogOut,
-  MapPin,
-  MessageCircle,
-  MessageSquare,
-  Shield,
-} from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-const navItems = [
-  { href: '/dashboard', label: 'Live Feed', icon: Activity },
-  { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
-  { href: '/dashboard/contacts', label: 'Contacts', icon: Contact },
-  { href: '/dashboard/sms', label: 'SMS', icon: MessageSquare },
-  { href: '/dashboard/gallery', label: 'Gallery', icon: Images },
-  { href: '/dashboard/audio', label: 'Audio', icon: Headphones },
-  { href: '/dashboard/location', label: 'Location', icon: MapPin },
-];
+import { DASHBOARD_NAV_ITEMS } from '@/components/layout/nav-items';
 
 export function Sidebar({ username }: { username: string }) {
   const pathname = usePathname();
@@ -56,7 +37,7 @@ export function Sidebar({ username }: { username: string }) {
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           Navigation
         </p>
-        {navItems.map((item) => {
+        {DASHBOARD_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

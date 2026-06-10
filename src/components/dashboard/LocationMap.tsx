@@ -71,7 +71,7 @@ export function LocationMap({
 
   if (locations.length === 0 && !highlightLat) {
     return (
-      <div className="flex h-[360px] flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-900/50 sm:h-[420px]">
+      <div className="flex h-[280px] flex-col items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-900/50 sm:h-[360px] lg:h-[420px]">
         <p className="text-sm font-medium text-slate-400">No location history yet</p>
         <p className="mt-1 text-xs text-slate-600">GPS points appear after the child app reports location</p>
       </div>
@@ -83,7 +83,7 @@ export function LocationMap({
       <MapContainer
         center={center}
         zoom={13}
-        className="h-[360px] w-full z-0 sm:h-[420px]"
+        className="h-[280px] w-full z-0 sm:h-[360px] lg:h-[420px]"
         scrollWheelZoom={true}
       >
         <TileLayer

@@ -14,7 +14,9 @@ import { useWhatsAppMessages } from '@/lib/hooks/useWhatsAppMessages';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { PAGE_SIZE } from '@/lib/pagination';
 import {
   formatTimestamp,
@@ -99,6 +101,7 @@ export default function MessagesPage() {
     search: debouncedSearch,
   });
   const deleteMessages = useDeleteNotifications(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const messages = messageResult?.items ?? [];
   const totalCount = messageResult?.totalCount ?? 0;
@@ -135,19 +138,29 @@ export default function MessagesPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
       const result = await deleteMessages.mutateAsync(ids);
       setSelectedIds(new Set());
       setDeleteMessage(`Deleted ${result.deleted} message(s).`);
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected messages'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -181,7 +194,7 @@ export default function MessagesPage() {
               pageItemCount={messages.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteMessages.isPending}
               selectAllLabel="Select page"
             />
@@ -312,6 +325,16 @@ export default function MessagesPage() {
           isLoading={messagesLoading}
         />
       </Card>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete WhatsApp messages?"
+        description={`Delete ${selectedIds.size} WhatsApp message(s)? This cannot be undone.`}
+        confirmLabel="Delete messages"
+        isLoading={deleteMessages.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

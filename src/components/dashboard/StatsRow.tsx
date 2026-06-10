@@ -45,18 +45,18 @@ export function StatsRow({ devices, notificationCount }: StatsRowProps) {
   ];
 
   return (
-    <div className="portal-stats-grid grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="portal-stats-grid grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <Card key={stat.label}>
-            <CardBody className="portal-stat-inner flex items-center gap-3 py-3.5">
-              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+            <CardBody className="portal-stat-inner flex items-center gap-2.5 py-3 sm:gap-3 sm:py-3.5">
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9 ${stat.bg}`}>
+                <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-lg font-bold leading-none text-slate-100">{stat.value}</p>
-                <p className="mt-1 truncate text-[11px] text-slate-500">{stat.label}</p>
+                <p className="text-base font-bold leading-none text-slate-100 sm:text-lg">{stat.value}</p>
+                <p className="mt-1 truncate text-[10px] text-slate-500 sm:text-[11px]">{stat.label}</p>
               </div>
             </CardBody>
           </Card>

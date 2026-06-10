@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { BottomNav } from '@/components/layout/BottomNav';
-import { MobileHeader } from '@/components/layout/MobileHeader';
+import { MobileNav } from '@/components/layout/MobileNav';
 
 export default async function DashboardLayout({
   children,
@@ -31,15 +30,14 @@ export default async function DashboardLayout({
     'parent';
 
   return (
-    <div className="portal-shell dashboard-bg min-h-screen">
+    <div className="portal-shell dashboard-bg min-h-screen w-full overflow-x-hidden">
       <Sidebar username={username} />
-      <MobileHeader username={username} />
+      <MobileNav username={username} />
       <main className="portal-main lg:pl-64">
-        <div className="portal-content mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
+        <div className="portal-content mx-auto w-full min-w-0 max-w-7xl px-3 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-8">
           {children}
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }

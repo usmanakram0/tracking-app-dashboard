@@ -10,7 +10,9 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import {
@@ -48,6 +50,7 @@ export default function ContactsPage() {
     search: debouncedSearch,
   });
   const deleteContacts = useDeletePhoneContacts(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const contacts = contactResult?.items ?? [];
   const totalCount = contactResult?.totalCount ?? 0;
@@ -79,19 +82,29 @@ export default function ContactsPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
       const result = await deleteContacts.mutateAsync(ids);
       setSelectedIds(new Set());
       setDeleteMessage(`Deleted ${result.deleted} contact(s).`);
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected contacts'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -125,7 +138,7 @@ export default function ContactsPage() {
               pageItemCount={contacts.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteContacts.isPending}
               selectAllLabel="Select page"
             />
@@ -175,7 +188,7 @@ export default function ContactsPage() {
               return (
                 <div
                   key={contact.id}
-                  className={`flex items-start gap-3 px-4 py-4 transition-colors duration-200 sm:px-6 ${
+                  className={`portal-list-row flex items-start gap-2.5 px-4 py-3.5 transition-colors duration-200 sm:gap-3 sm:px-6 sm:py-4 ${
                     isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
                   }`}
                 >
@@ -235,6 +248,16 @@ export default function ContactsPage() {
           isLoading={contactsLoading}
         />
       </Card>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete contacts?"
+        description={`Delete ${selectedIds.size} contact(s) from the dashboard? This cannot be undone.`}
+        confirmLabel="Delete contacts"
+        isLoading={deleteContacts.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

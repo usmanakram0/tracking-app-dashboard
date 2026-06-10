@@ -58,13 +58,13 @@ export function NotificationFeed({
   deleteMessage,
 }: NotificationFeedProps) {
   return (
-    <Card className="portal-feed flex h-full min-h-[480px] flex-col">
+    <Card className="portal-feed flex h-full min-h-0 flex-col lg:min-h-[480px]">
       <CardHeader
         title="Live Activity Feed"
         subtitle={`${totalCount} notifications`}
         icon={<Bell className="h-4 w-4 text-emerald-400" />}
         action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <BulkDeleteToolbar
               pageItemCount={notifications.length}
               selectedCount={selectedIds.size}
@@ -73,7 +73,7 @@ export function NotificationFeed({
               isDeleting={isDeleting}
               selectAllLabel="Select page"
             />
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
+            <span className="flex w-full items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20 sm:w-auto sm:justify-start sm:py-1">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               Live
             </span>
@@ -89,12 +89,12 @@ export function NotificationFeed({
             placeholder="Search app, sender, or message..."
           />
         </div>
-        <div className="portal-filter-row flex flex-wrap gap-2">
+        <div className="portal-filter-row -mx-1 flex gap-2 overflow-x-auto pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:pb-0">
           {APP_FILTERS.map((filter) => (
             <button
               key={filter.id}
               onClick={() => onAppFilterChange(filter.id)}
-              className={`portal-filter-pill rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+              className={`portal-filter-pill shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                 appFilter === filter.id
                   ? 'portal-filter-pill-active bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
                   : 'portal-filter-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -150,7 +150,7 @@ export function NotificationFeed({
               return (
                 <div
                   key={n.id}
-                  className={`grid grid-cols-[auto_auto_1fr_auto] items-start gap-3 px-4 py-4 transition-colors duration-200 sm:gap-4 sm:px-6 ${
+                  className={`portal-list-row flex items-start gap-2.5 px-4 py-3.5 transition-colors duration-200 sm:gap-3 sm:px-6 sm:py-4 ${
                     isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
                   }`}
                 >
@@ -160,38 +160,30 @@ export function NotificationFeed({
                   />
 
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-slate-900 sm:h-11 sm:w-11 ${getAppIconColor(n.app_package)}`}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-slate-900 sm:h-11 sm:w-11 ${getAppIconColor(n.app_package)}`}
                   >
                     {appLabel.charAt(0).toUpperCase()}
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="text-sm font-semibold text-slate-200">
                         {appLabel}
                       </span>
-                      <span className="hidden text-slate-600 sm:inline">·</span>
                       <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-400/90">
                         {childName}
                       </span>
                     </div>
-                    <p className="mt-1 truncate text-sm font-medium text-slate-300">
+                    <p className="mt-1 break-words text-sm font-medium text-slate-300">
                       {sender}
                     </p>
                     <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-400">
                       {fullText || 'No message text'}
                     </p>
-                  </div>
-
-                  <div className="hidden shrink-0 text-right sm:block">
-                    <p className="whitespace-nowrap text-[11px] text-slate-500">
+                    <p className="mt-1.5 text-[11px] text-slate-600">
                       {formatTimestamp(n.posted_at)}
                     </p>
                   </div>
-
-                  <p className="col-span-4 text-[11px] text-slate-600 sm:hidden">
-                    {formatTimestamp(n.posted_at)}
-                  </p>
                 </div>
               );
             })}

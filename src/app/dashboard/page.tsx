@@ -9,8 +9,10 @@ import { DeviceManagementCard } from '@/components/dashboard/DeviceManagementCar
 import { NotificationFeed } from '@/components/dashboard/NotificationFeed';
 import { StatsRow } from '@/components/dashboard/StatsRow';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import {
   useDeleteNotifications,
   useNotifications,
@@ -56,6 +58,7 @@ export default function DashboardPage() {
     appFilter
   );
   const deleteNotifications = useDeleteNotifications(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const notifications = notificationResult?.items ?? [];
   const notificationPage = notificationResult?.page ?? 1;
@@ -94,19 +97,29 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
       const result = await deleteNotifications.mutateAsync(ids);
       setSelectedIds(new Set());
       setDeleteMessage(`Deleted ${result.deleted} notification(s).`);
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected notifications'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -182,12 +195,22 @@ export default function DashboardPage() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
-            onDeleteSelected={handleDeleteSelected}
+            onDeleteSelected={handleDeleteRequest}
             isDeleting={deleteNotifications.isPending}
             deleteMessage={deleteMessage}
           />
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete notifications?"
+        description={`Delete ${selectedIds.size} notification(s) from the live feed? This cannot be undone.`}
+        confirmLabel="Delete notifications"
+        isLoading={deleteNotifications.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

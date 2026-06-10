@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Loader2, Mic, Music } from 'lucide-react';
 import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SelectToggle } from '@/components/ui/SelectToggle';
+import { useDeleteConfirmation } from '@/lib/hooks/useDeleteConfirmation';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -75,6 +77,7 @@ export default function AudioPage() {
   const currentPage = audioResult?.page ?? 1;
   const { data: quota } = useAudioQuota(parentId);
   const deleteAudio = useDeleteAudioMedia(parentId);
+  const deleteConfirm = useDeleteConfirmation();
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -106,9 +109,17 @@ export default function AudioPage() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteRequest = () => {
+    if (selectedIds.size === 0) return;
+    deleteConfirm.open();
+  };
+
+  const handleConfirmDelete = async () => {
     const ids = Array.from(selectedIds);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      deleteConfirm.close();
+      return;
+    }
 
     setDeleteMessage(null);
     try {
@@ -120,10 +131,12 @@ export default function AudioPage() {
       setDeleteMessage(
         `Deleted ${result.deleted} file(s). Sync may resume if storage was full.`
       );
+      deleteConfirm.close();
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected audio'
       );
+      deleteConfirm.close();
     }
   };
 
@@ -187,7 +200,7 @@ export default function AudioPage() {
               pageItemCount={audioItems.length}
               selectedCount={selectedIds.size}
               onToggleSelectAll={toggleSelectAll}
-              onDelete={handleDeleteSelected}
+              onDelete={handleDeleteRequest}
               isDeleting={deleteAudio.isPending}
               selectAllLabel="Select page"
             />
@@ -309,6 +322,16 @@ export default function AudioPage() {
           isLoading={audioLoading}
         />
       </Card>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete audio files?"
+        description={`Delete ${selectedIds.size} audio file(s) from storage? This cannot be undone and may free space for new syncs.`}
+        confirmLabel="Delete audio"
+        isLoading={deleteAudio.isPending}
+        onClose={deleteConfirm.close}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
