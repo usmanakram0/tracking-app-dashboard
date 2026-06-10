@@ -7,13 +7,19 @@ import { Contact, Loader2, Mail, Phone } from 'lucide-react';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
 import { useDevices } from '@/lib/hooks/useDevices';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { usePhoneContacts } from '@/lib/hooks/usePhoneContacts';
+import { PAGE_SIZE } from '@/lib/pagination';
 import { formatTimestamp } from '@/lib/utils';
 
 export default function ContactsPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -27,10 +33,18 @@ export default function ContactsPage() {
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
   const {
-    data: contacts = [],
+    data: contactResult,
     isLoading: contactsLoading,
     isError: contactsError,
-  } = usePhoneContacts(parentId, selectedDeviceId);
+  } = usePhoneContacts(parentId, selectedDeviceId, {
+    page,
+    search: debouncedSearch,
+  });
+
+  const contacts = contactResult?.items ?? [];
+  const totalCount = contactResult?.totalCount ?? 0;
+  const totalPages = contactResult?.totalPages ?? 1;
+  const currentPage = contactResult?.page ?? 1;
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -39,18 +53,6 @@ export default function ContactsPage() {
     });
     return map;
   }, [devices]);
-
-  const filteredContacts = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return contacts;
-
-    return contacts.filter((contact) => {
-      const name = contact.display_name?.toLowerCase() || '';
-      const phone = contact.phone_number.toLowerCase();
-      const email = contact.email?.toLowerCase() || '';
-      return name.includes(query) || phone.includes(query) || email.includes(query);
-    });
-  }, [contacts, searchQuery]);
 
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
@@ -62,24 +64,28 @@ export default function ContactsPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+        }}
         isLoading={devicesLoading}
       />
 
       <Card>
         <CardHeader
           title="Contact List"
-          subtitle={`${filteredContacts.length} contacts`}
+          subtitle={`${totalCount} contacts`}
           icon={<Contact className="h-4 w-4 text-blue-400" />}
         />
 
         <CardBody className="border-b border-slate-800/80 py-3">
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+            }}
             placeholder="Search name, phone, or email..."
-            className="portal-input w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
           />
         </CardBody>
 
@@ -91,17 +97,17 @@ export default function ContactsPage() {
           <CardBody className="py-16 text-center text-sm text-red-300">
             Failed to load contacts. Check your connection and try again.
           </CardBody>
-        ) : filteredContacts.length === 0 ? (
+        ) : contacts.length === 0 ? (
           <CardBody className="py-16 text-center">
             <Contact className="mx-auto mb-3 h-10 w-10 text-slate-700" />
-            <p className="text-sm text-slate-500">No contacts synced yet.</p>
+            <p className="text-sm text-slate-500">No contacts found.</p>
             <p className="mt-1 text-xs text-slate-600">
-              New or updated contacts from the child phone will appear here.
+              Try another search or wait for new contacts from the child phone.
             </p>
           </CardBody>
         ) : (
           <div className="divide-y divide-slate-800/80">
-            {filteredContacts.map((contact) => {
+            {contacts.map((contact) => {
               const childName = childNameMap[contact.device_id] || 'Device';
 
               return (
@@ -147,6 +153,15 @@ export default function ContactsPage() {
             })}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          isLoading={contactsLoading}
+        />
       </Card>
     </div>
   );

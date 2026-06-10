@@ -17,6 +17,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useAudioMedia, useDeleteAudioMedia } from '@/lib/hooks/useAudioMedia';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
+import { PAGE_SIZE } from '@/lib/pagination';
 import { useAudioQuota } from '@/lib/hooks/useAudioQuota';
 import {
   CHILD_AUDIO_BUCKET,
@@ -51,6 +55,9 @@ export default function AudioPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -63,10 +70,15 @@ export default function AudioPage() {
 
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
-  const { data: audioItems = [], isLoading: audioLoading } = useAudioMedia(
+  const { data: audioResult, isLoading: audioLoading } = useAudioMedia(
     parentId,
-    selectedDeviceId
+    selectedDeviceId,
+    { page, search: debouncedSearch }
   );
+  const audioItems = audioResult?.items ?? [];
+  const totalCount = audioResult?.totalCount ?? 0;
+  const totalPages = audioResult?.totalPages ?? 1;
+  const currentPage = audioResult?.page ?? 1;
   const { data: quota } = useAudioQuota(parentId);
   const deleteAudio = useDeleteAudioMedia(parentId);
 
@@ -163,14 +175,18 @@ export default function AudioPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+          setSelectedIds(new Set());
+        }}
         isLoading={devicesLoading}
       />
 
       <Card>
         <CardHeader
           title="Synced Audio"
-          subtitle={`${audioItems.length} files`}
+          subtitle={`${totalCount} files`}
           icon={<Music className="h-4 w-4 text-purple-400" />}
           action={
             <div className="flex items-center gap-2">
@@ -201,6 +217,18 @@ export default function AudioPage() {
             </div>
           }
         />
+
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+              setSelectedIds(new Set());
+            }}
+            placeholder="Search title, artist, or filename..."
+          />
+        </CardBody>
 
         {deleteMessage && (
           <CardBody className="border-b border-slate-800/80 py-3">
@@ -298,6 +326,18 @@ export default function AudioPage() {
             })}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            setSelectedIds(new Set());
+          }}
+          isLoading={audioLoading}
+        />
       </Card>
     </div>
   );

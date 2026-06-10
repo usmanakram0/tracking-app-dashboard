@@ -10,11 +10,16 @@ import { NotificationFeed } from '@/components/dashboard/NotificationFeed';
 import { StatsRow } from '@/components/dashboard/StatsRow';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useDevices } from '@/lib/hooks/useDevices';
-import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useNotifications, useNotificationsCount } from '@/lib/hooks/useNotifications';
+import { PAGE_SIZE } from '@/lib/pagination';
 
 export default function DashboardPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [appFilter, setAppFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
   const [highlightGps, setHighlightGps] = useState<{
     lat: number;
     lng: number;
@@ -32,10 +37,23 @@ export default function DashboardPage() {
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
   const {
-    data: notifications = [],
+    data: notificationResult,
     isLoading: notificationsLoading,
     isError: notificationsError,
-  } = useNotifications(parentId, selectedDeviceId, appFilter);
+  } = useNotifications(parentId, selectedDeviceId, appFilter, {
+    page,
+    search: debouncedSearch,
+  });
+  const { data: notificationTotal = 0 } = useNotificationsCount(
+    parentId,
+    selectedDeviceId,
+    appFilter
+  );
+
+  const notifications = notificationResult?.items ?? [];
+  const notificationPage = notificationResult?.page ?? 1;
+  const notificationTotalPages = notificationResult?.totalPages ?? 1;
+  const notificationResultCount = notificationResult?.totalCount ?? 0;
 
   const activeDeviceId = selectedDeviceId ?? devices[0]?.device_id ?? null;
 
@@ -59,12 +77,15 @@ export default function DashboardPage() {
         description="Monitor notifications and device status in real time"
       />
 
-      <StatsRow devices={devices} notificationCount={notifications.length} />
+      <StatsRow devices={devices} notificationCount={notificationTotal} />
 
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+        }}
         isLoading={devicesLoading}
       />
 
@@ -92,10 +113,23 @@ export default function DashboardPage() {
         <div className="portal-split-main lg:col-span-8">
           <NotificationFeed
             notifications={notifications}
+            totalCount={notificationResultCount}
+            page={notificationPage}
+            totalPages={notificationTotalPages}
+            pageSize={PAGE_SIZE}
+            search={searchInput}
+            onSearchChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+            }}
+            onPageChange={setPage}
             isLoading={notificationsLoading}
             isError={notificationsError}
             appFilter={appFilter}
-            onAppFilterChange={setAppFilter}
+            onAppFilterChange={(filter) => {
+              setAppFilter(filter);
+              setPage(1);
+            }}
             childNameMap={childNameMap}
           />
         </div>

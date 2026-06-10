@@ -21,6 +21,10 @@ import {
   useDeleteGalleryMedia,
   useGalleryMedia,
 } from '@/lib/hooks/useGalleryMedia';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
+import { PAGE_SIZE } from '@/lib/pagination';
 import { useGalleryQuota } from '@/lib/hooks/useGalleryQuota';
 import {
   CHILD_GALLERY_BUCKET,
@@ -35,6 +39,9 @@ export default function GalleryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewItem, setPreviewItem] = useState<GalleryMedia | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -47,10 +54,15 @@ export default function GalleryPage() {
 
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
-  const { data: media = [], isLoading: mediaLoading } = useGalleryMedia(
+  const { data: mediaResult, isLoading: mediaLoading } = useGalleryMedia(
     parentId,
-    selectedDeviceId
+    selectedDeviceId,
+    { page, search: debouncedSearch }
   );
+  const media = mediaResult?.items ?? [];
+  const totalCount = mediaResult?.totalCount ?? 0;
+  const totalPages = mediaResult?.totalPages ?? 1;
+  const currentPage = mediaResult?.page ?? 1;
   const { data: quota } = useGalleryQuota(parentId);
   const deleteMedia = useDeleteGalleryMedia(parentId);
 
@@ -149,14 +161,18 @@ export default function GalleryPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+          setSelectedIds(new Set());
+        }}
         isLoading={devicesLoading}
       />
 
       <Card>
         <CardHeader
           title="Synced Media"
-          subtitle={`${media.length} items`}
+          subtitle={`${totalCount} items`}
           icon={<ImageIcon className="h-4 w-4 text-emerald-400" />}
           action={
             <div className="flex items-center gap-2">
@@ -187,6 +203,18 @@ export default function GalleryPage() {
             </div>
           }
         />
+
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+              setSelectedIds(new Set());
+            }}
+            placeholder="Search filename or media type..."
+          />
+        </CardBody>
 
         {deleteMessage && (
           <CardBody className="border-b border-slate-800/80 py-3">
@@ -274,6 +302,18 @@ export default function GalleryPage() {
             })}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            setSelectedIds(new Set());
+          }}
+          isLoading={mediaLoading}
+        />
       </Card>
 
       {previewItem && previewUrl && (

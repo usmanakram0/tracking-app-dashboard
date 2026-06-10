@@ -7,6 +7,10 @@ import { useQuery } from '@tanstack/react-query';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useLocations } from '@/lib/hooks/useLocations';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
+import { PAGE_SIZE } from '@/lib/pagination';
 import { formatTimestamp } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -26,6 +30,9 @@ const LocationMap = dynamic(
 
 export default function LocationPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -38,10 +45,16 @@ export default function LocationPage() {
 
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
-  const { data: locations = [], isLoading: locationsLoading } = useLocations(
+  const { data: locationsResult, isLoading: locationsLoading } = useLocations(
     parentId,
-    selectedDeviceId
+    selectedDeviceId,
+    { page, search: debouncedSearch }
   );
+
+  const locations = locationsResult?.items ?? [];
+  const totalCount = locationsResult?.totalCount ?? 0;
+  const totalPages = locationsResult?.totalPages ?? 1;
+  const currentPage = locationsResult?.page ?? 1;
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -50,6 +63,8 @@ export default function LocationPage() {
     });
     return map;
   }, [devices]);
+
+  const listOffset = (currentPage - 1) * PAGE_SIZE;
 
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
@@ -61,7 +76,10 @@ export default function LocationPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+        }}
         isLoading={devicesLoading}
       />
 
@@ -76,11 +94,23 @@ export default function LocationPage() {
       <Card>
         <CardHeader
           title="Location Trail"
-          subtitle={`${locations.length} recorded points`}
+          subtitle={`${totalCount} recorded points`}
           icon={<MapPin className="h-4 w-4 text-emerald-400" />}
         />
+
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+            }}
+            placeholder="Search address, provider, or device..."
+          />
+        </CardBody>
+
         <div className="custom-scrollbar max-h-80 divide-y divide-slate-800/60 overflow-y-auto">
-          {locations.length === 0 && (
+          {locations.length === 0 && !locationsLoading && (
             <CardBody className="flex flex-col items-center py-12 text-center">
               <Navigation className="mb-3 h-8 w-8 text-slate-600" />
               <p className="text-sm text-slate-400">No location points recorded yet</p>
@@ -92,7 +122,7 @@ export default function LocationPage() {
               className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3.5 sm:px-6"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-400">
-                {locations.length - index}
+                {totalCount - listOffset - index}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-200">
@@ -101,6 +131,7 @@ export default function LocationPage() {
                 <p className="truncate text-xs text-slate-500">
                   {loc.latitude.toFixed(5)}, {loc.longitude.toFixed(5)}
                   {loc.accuracy ? ` · ±${loc.accuracy.toFixed(0)}m` : ''}
+                  {loc.address ? ` · ${loc.address}` : ''}
                 </p>
               </div>
               <p className="shrink-0 whitespace-nowrap text-[11px] text-slate-600">
@@ -109,6 +140,15 @@ export default function LocationPage() {
             </div>
           ))}
         </div>
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          isLoading={locationsLoading}
+        />
       </Card>
     </div>
   );

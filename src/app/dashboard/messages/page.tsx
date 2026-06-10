@@ -8,7 +8,11 @@ import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useDevices } from '@/lib/hooks/useDevices';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useWhatsAppMessages } from '@/lib/hooks/useWhatsAppMessages';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
+import { PAGE_SIZE } from '@/lib/pagination';
 import {
   formatTimestamp,
   getNotificationContactName,
@@ -66,6 +70,9 @@ function buildContactGroups(messages: NotificationLog[]): ContactGroup[] {
 export default function MessagesPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [expandedContact, setExpandedContact] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -79,10 +86,18 @@ export default function MessagesPage() {
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
   const {
-    data: messages = [],
+    data: messageResult,
     isLoading: messagesLoading,
     isError: messagesError,
-  } = useWhatsAppMessages(parentId, selectedDeviceId);
+  } = useWhatsAppMessages(parentId, selectedDeviceId, {
+    page,
+    search: debouncedSearch,
+  });
+
+  const messages = messageResult?.items ?? [];
+  const totalCount = messageResult?.totalCount ?? 0;
+  const totalPages = messageResult?.totalPages ?? 1;
+  const currentPage = messageResult?.page ?? 1;
 
   const childNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -107,16 +122,30 @@ export default function MessagesPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+        }}
         isLoading={devicesLoading}
       />
 
       <Card>
         <CardHeader
           title="Messages by Contact"
-          subtitle={`${contactGroups.length} contacts · ${messages.length} messages`}
+          subtitle={`${contactGroups.length} contacts on page · ${totalCount} messages total`}
           icon={<MessageCircle className="h-4 w-4 text-emerald-400" />}
         />
+
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+            }}
+            placeholder="Search contact name or message text..."
+          />
+        </CardBody>
 
         {messagesLoading ? (
           <CardBody className="flex justify-center py-16">
@@ -200,6 +229,15 @@ export default function MessagesPage() {
             })}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          isLoading={messagesLoading}
+        />
       </Card>
     </div>
   );

@@ -4,33 +4,66 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CHILD_AUDIO_BUCKET } from '@/lib/storage';
+import {
+  buildIlikePattern,
+  buildPaginatedResult,
+  getPageRange,
+  type PaginatedResult,
+} from '@/lib/pagination';
 import type { AudioMedia } from '@/lib/types';
+
+type AudioQueryOptions = {
+  page?: number;
+  search?: string;
+};
 
 export function useAudioMedia(
   parentId: string | undefined,
-  deviceId: string | null
+  deviceId: string | null,
+  options: AudioQueryOptions = {}
 ) {
+  const page = options.page ?? 1;
+  const search = options.search ?? '';
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['audio-media', parentId, deviceId],
-    queryFn: async (): Promise<AudioMedia[]> => {
-      if (!parentId) return [];
+    queryKey: ['audio-media', parentId, deviceId, page, search],
+    queryFn: async (): Promise<PaginatedResult<AudioMedia>> => {
+      if (!parentId) {
+        return buildPaginatedResult<AudioMedia>([], 0, page);
+      }
+
       const supabase = createClient();
+      const { from, to, safePage } = getPageRange(page);
+      const pattern = buildIlikePattern(search);
+
       let q = supabase
         .from('audio_media')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('parent_id', parentId)
         .order('captured_at', { ascending: false })
-        .limit(200);
+        .range(from, to);
 
       if (deviceId) q = q.eq('device_id', deviceId);
+      if (pattern) {
+        q = q.or(
+          [
+            `title.ilike.${pattern}`,
+            `artist.ilike.${pattern}`,
+            `album.ilike.${pattern}`,
+            `original_filename.ilike.${pattern}`,
+            `audio_category.ilike.${pattern}`,
+          ].join(',')
+        );
+      }
 
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data ?? [];
+
+      return buildPaginatedResult(data ?? [], count, safePage);
     },
     enabled: !!parentId,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
@@ -48,12 +81,8 @@ export function useAudioMedia(
           filter: `parent_id=eq.${parentId}`,
         },
         () => {
-          queryClient.invalidateQueries({
-            queryKey: ['audio-media', parentId, deviceId],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ['audio-quota', parentId],
-          });
+          queryClient.invalidateQueries({ queryKey: ['audio-media', parentId] });
+          queryClient.invalidateQueries({ queryKey: ['audio-quota', parentId] });
         }
       )
       .subscribe();
@@ -61,7 +90,7 @@ export function useAudioMedia(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [parentId, deviceId, queryClient]);
+  }, [parentId, queryClient]);
 
   return query;
 }

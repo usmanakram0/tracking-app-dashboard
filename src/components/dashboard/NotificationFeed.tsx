@@ -9,9 +9,18 @@ import {
   APP_FILTERS,
 } from '@/lib/utils';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
 
 type NotificationFeedProps = {
   notifications: NotificationLog[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+  pageSize: number;
+  search: string;
+  onSearchChange: (value: string) => void;
+  onPageChange: (page: number) => void;
   isLoading: boolean;
   isError: boolean;
   appFilter: string;
@@ -21,6 +30,13 @@ type NotificationFeedProps = {
 
 export function NotificationFeed({
   notifications,
+  totalCount,
+  page,
+  totalPages,
+  pageSize,
+  search,
+  onSearchChange,
+  onPageChange,
   isLoading,
   isError,
   appFilter,
@@ -31,7 +47,7 @@ export function NotificationFeed({
     <Card className="portal-feed flex h-full min-h-[480px] flex-col">
       <CardHeader
         title="Live Activity Feed"
-        subtitle="Real-time notification stream"
+        subtitle={`${totalCount} notifications`}
         icon={<Bell className="h-4 w-4 text-emerald-400" />}
         action={
           <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
@@ -42,6 +58,13 @@ export function NotificationFeed({
       />
 
       <CardBody className="border-b border-slate-800/80 py-3">
+        <div className="portal-stack-5 mb-3 flex flex-col gap-3">
+          <SearchBar
+            value={search}
+            onChange={onSearchChange}
+            placeholder="Search app, sender, or message..."
+          />
+        </div>
         <div className="portal-filter-row flex flex-wrap gap-2">
           {APP_FILTERS.map((filter) => (
             <button
@@ -78,9 +101,9 @@ export function NotificationFeed({
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800">
               <Bell className="h-5 w-5 text-slate-600" />
             </div>
-            <p className="text-sm font-medium text-slate-400">No notifications yet</p>
+            <p className="text-sm font-medium text-slate-400">No notifications found</p>
             <p className="mt-1 max-w-xs text-xs text-slate-600">
-              Notifications will appear here in real time when the child phone receives them.
+              Try another search or wait for new activity from the child phone.
             </p>
           </div>
         )}
@@ -137,6 +160,15 @@ export function NotificationFeed({
           </div>
         )}
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+        isLoading={isLoading}
+      />
     </Card>
   );
 }

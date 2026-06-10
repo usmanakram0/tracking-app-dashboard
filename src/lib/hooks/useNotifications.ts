@@ -3,36 +3,70 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  buildIlikePattern,
+  buildPaginatedResult,
+  getPageRange,
+  PAGE_SIZE,
+  type PaginatedResult,
+} from '@/lib/pagination';
 import type { NotificationLog } from '@/lib/types';
+
+type NotificationQueryOptions = {
+  page?: number;
+  search?: string;
+};
 
 export function useNotifications(
   parentId: string | undefined,
   deviceId: string | null,
-  appFilter: string
+  appFilter: string,
+  options: NotificationQueryOptions = {}
 ) {
+  const page = options.page ?? 1;
+  const search = options.search ?? '';
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['notifications', parentId, deviceId, appFilter],
-    queryFn: async (): Promise<NotificationLog[]> => {
-      if (!parentId) return [];
+    queryKey: ['notifications', parentId, deviceId, appFilter, page, search],
+    queryFn: async (): Promise<PaginatedResult<NotificationLog>> => {
+      if (!parentId) {
+        return buildPaginatedResult<NotificationLog>([], 0, page);
+      }
+
       const supabase = createClient();
+      const { from, to, safePage } = getPageRange(page);
+      const pattern = buildIlikePattern(search);
+
       let q = supabase
         .from('notifications_log')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('parent_id', parentId)
         .order('posted_at', { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (deviceId) q = q.eq('device_id', deviceId);
       if (appFilter !== 'all') q = q.ilike('app_package', `%${appFilter}%`);
+      if (pattern) {
+        q = q.or(
+          [
+            `title.ilike.${pattern}`,
+            `message.ilike.${pattern}`,
+            `big_text.ilike.${pattern}`,
+            `conversation_title.ilike.${pattern}`,
+            `app_name.ilike.${pattern}`,
+          ].join(',')
+        );
+      }
 
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data ?? [];
+
+      return buildPaginatedResult(data ?? [], count, safePage);
     },
     enabled: !!parentId,
     refetchInterval: 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
@@ -49,15 +83,9 @@ export function useNotifications(
           table: 'notifications_log',
           filter: `parent_id=eq.${parentId}`,
         },
-        (payload) => {
-          const newRow = payload.new as NotificationLog;
-          if (deviceId && newRow.device_id !== deviceId) return;
-          if (appFilter !== 'all' && !newRow.app_package.includes(appFilter)) return;
-
-          queryClient.setQueryData<NotificationLog[]>(
-            ['notifications', parentId, deviceId, appFilter],
-            (old) => [newRow, ...(old ?? [])].slice(0, 100)
-          );
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications', parentId] });
+          queryClient.invalidateQueries({ queryKey: ['notifications-count', parentId] });
         }
       )
       .subscribe();
@@ -65,7 +93,37 @@ export function useNotifications(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [parentId, deviceId, appFilter, queryClient]);
+  }, [parentId, queryClient]);
 
   return query;
 }
+
+export function useNotificationsCount(
+  parentId: string | undefined,
+  deviceId: string | null,
+  appFilter: string
+) {
+  return useQuery({
+    queryKey: ['notifications-count', parentId, deviceId, appFilter],
+    queryFn: async (): Promise<number> => {
+      if (!parentId) return 0;
+      const supabase = createClient();
+
+      let q = supabase
+        .from('notifications_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('parent_id', parentId);
+
+      if (deviceId) q = q.eq('device_id', deviceId);
+      if (appFilter !== 'all') q = q.ilike('app_package', `%${appFilter}%`);
+
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!parentId,
+    refetchInterval: 60 * 1000,
+  });
+}
+
+export { PAGE_SIZE };

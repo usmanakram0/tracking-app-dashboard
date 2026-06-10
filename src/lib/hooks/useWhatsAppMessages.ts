@@ -3,37 +3,69 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  buildIlikePattern,
+  buildPaginatedResult,
+  getPageRange,
+  type PaginatedResult,
+} from '@/lib/pagination';
 import type { NotificationLog } from '@/lib/types';
 
 const WHATSAPP_PACKAGE = 'com.whatsapp';
 
+type MessageQueryOptions = {
+  page?: number;
+  search?: string;
+};
+
 export function useWhatsAppMessages(
   parentId: string | undefined,
-  deviceId: string | null
+  deviceId: string | null,
+  options: MessageQueryOptions = {}
 ) {
+  const page = options.page ?? 1;
+  const search = options.search ?? '';
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['whatsapp-messages', parentId, deviceId],
-    queryFn: async (): Promise<NotificationLog[]> => {
-      if (!parentId) return [];
+    queryKey: ['whatsapp-messages', parentId, deviceId, page, search],
+    queryFn: async (): Promise<PaginatedResult<NotificationLog>> => {
+      if (!parentId) {
+        return buildPaginatedResult<NotificationLog>([], 0, page);
+      }
+
       const supabase = createClient();
+      const { from, to, safePage } = getPageRange(page);
+      const pattern = buildIlikePattern(search);
+
       let q = supabase
         .from('notifications_log')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('parent_id', parentId)
         .ilike('app_package', `%${WHATSAPP_PACKAGE}%`)
         .order('posted_at', { ascending: false })
-        .limit(300);
+        .range(from, to);
 
       if (deviceId) q = q.eq('device_id', deviceId);
+      if (pattern) {
+        q = q.or(
+          [
+            `title.ilike.${pattern}`,
+            `message.ilike.${pattern}`,
+            `big_text.ilike.${pattern}`,
+            `conversation_title.ilike.${pattern}`,
+          ].join(',')
+        );
+      }
 
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data ?? [];
+
+      return buildPaginatedResult(data ?? [], count, safePage);
     },
     enabled: !!parentId,
     refetchInterval: 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
@@ -50,15 +82,8 @@ export function useWhatsAppMessages(
           table: 'notifications_log',
           filter: `parent_id=eq.${parentId}`,
         },
-        (payload) => {
-          const newRow = payload.new as NotificationLog;
-          if (!newRow.app_package.includes('whatsapp')) return;
-          if (deviceId && newRow.device_id !== deviceId) return;
-
-          queryClient.setQueryData<NotificationLog[]>(
-            ['whatsapp-messages', parentId, deviceId],
-            (old) => [newRow, ...(old ?? [])].slice(0, 300)
-          );
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['whatsapp-messages', parentId] });
         }
       )
       .subscribe();
@@ -66,7 +91,7 @@ export function useWhatsAppMessages(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [parentId, deviceId, queryClient]);
+  }, [parentId, queryClient]);
 
   return query;
 }

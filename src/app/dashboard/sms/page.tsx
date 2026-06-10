@@ -16,6 +16,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDeleteSmsMessages, useSmsMessages } from '@/lib/hooks/useSmsMessages';
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { Pagination } from '@/components/ui/Pagination';
+import { PAGE_SIZE } from '@/lib/pagination';
 import { useSmsQuota } from '@/lib/hooks/useSmsQuota';
 import { formatBytes } from '@/lib/storage';
 import { formatTimestamp } from '@/lib/utils';
@@ -77,6 +81,9 @@ export default function SmsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
     queryKey: ['auth-user'],
@@ -90,10 +97,17 @@ export default function SmsPage() {
   const parentId = user?.id;
   const { data: devices = [], isLoading: devicesLoading } = useDevices(parentId);
   const {
-    data: smsList = [],
+    data: smsResult,
     isLoading: smsLoading,
     isError: smsError,
-  } = useSmsMessages(parentId, selectedDeviceId);
+  } = useSmsMessages(parentId, selectedDeviceId, {
+    page,
+    search: debouncedSearch,
+  });
+  const smsList = smsResult?.items ?? [];
+  const totalCount = smsResult?.totalCount ?? 0;
+  const totalPages = smsResult?.totalPages ?? 1;
+  const currentPage = smsResult?.page ?? 1;
   const { data: quota } = useSmsQuota(parentId);
   const deleteSms = useDeleteSmsMessages(parentId);
 
@@ -192,14 +206,18 @@ export default function SmsPage() {
       <ChildSelector
         devices={devices}
         selectedDeviceId={selectedDeviceId}
-        onSelect={setSelectedDeviceId}
+        onSelect={(id) => {
+          setSelectedDeviceId(id);
+          setPage(1);
+          setSelectedIds(new Set());
+        }}
         isLoading={devicesLoading}
       />
 
       <Card>
         <CardHeader
           title="SMS by Number"
-          subtitle={`${smsGroups.length} numbers · ${smsList.length} messages`}
+          subtitle={`${smsGroups.length} numbers · ${totalCount} messages`}
           icon={<MessageSquare className="h-4 w-4 text-blue-400" />}
           action={
             <div className="flex items-center gap-2">
@@ -230,6 +248,18 @@ export default function SmsPage() {
             </div>
           }
         />
+
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <SearchBar
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+              setSelectedIds(new Set());
+            }}
+            placeholder="Search phone number or message text..."
+          />
+        </CardBody>
 
         {deleteMessage && (
           <CardBody className="border-b border-slate-800/80 py-3">
@@ -331,6 +361,18 @@ export default function SmsPage() {
             })}
           </div>
         )}
+
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            setSelectedIds(new Set());
+          }}
+          isLoading={smsLoading}
+        />
       </Card>
     </div>
   );
