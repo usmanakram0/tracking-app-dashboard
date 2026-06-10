@@ -11,8 +11,9 @@ import {
   ImageIcon,
   Loader2,
   Square,
-  Trash2,
 } from 'lucide-react';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -97,17 +98,19 @@ export default function GalleryPage() {
   };
 
   const handleDeleteSelected = async () => {
-    const items = media.filter((m) => selectedIds.has(m.id));
-    if (items.length === 0) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
 
     setDeleteMessage(null);
     try {
-      await deleteMedia.mutateAsync(items);
-      setSelectedIds(new Set());
+      const result = await deleteMedia.mutateAsync(ids);
       if (previewItem && selectedIds.has(previewItem.id)) {
         setPreviewItem(null);
       }
-      setDeleteMessage(`Deleted ${items.length} item(s). Sync may resume if storage was full.`);
+      setSelectedIds(new Set());
+      setDeleteMessage(
+        `Deleted ${result.deleted} item(s). Sync may resume if storage was full.`
+      );
     } catch (err) {
       setDeleteMessage(
         err instanceof Error ? err.message : 'Failed to delete selected media'
@@ -175,32 +178,14 @@ export default function GalleryPage() {
           subtitle={`${totalCount} items`}
           icon={<ImageIcon className="h-4 w-4 text-emerald-400" />}
           action={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSelectAll}
-                disabled={media.length === 0}
-                className="portal-action-btn portal-action-btn-muted flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
-              >
-                {selectedIds.size === media.length && media.length > 0 ? (
-                  <CheckSquare className="h-3.5 w-3.5" />
-                ) : (
-                  <Square className="h-3.5 w-3.5" />
-                )}
-                Select all
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={selectedIds.size === 0 || deleteMedia.isPending}
-                className="portal-action-btn portal-action-btn-danger flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 ring-1 ring-red-500/25 transition-all duration-200 hover:bg-red-500/25 disabled:opacity-40"
-              >
-                {deleteMedia.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Delete ({selectedIds.size})
-              </button>
-            </div>
+            <BulkDeleteToolbar
+              pageItemCount={media.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteMedia.isPending}
+              selectAllLabel="Select page"
+            />
           }
         />
 

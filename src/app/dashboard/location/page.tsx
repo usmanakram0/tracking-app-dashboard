@@ -6,10 +6,12 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { useDevices } from '@/lib/hooks/useDevices';
-import { useLocations } from '@/lib/hooks/useLocations';
+import { useDeleteLocations, useLocations } from '@/lib/hooks/useLocations';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { formatTimestamp } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -32,6 +34,8 @@ export default function LocationPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
@@ -50,6 +54,7 @@ export default function LocationPage() {
     selectedDeviceId,
     { page, search: debouncedSearch }
   );
+  const deleteLocations = useDeleteLocations(parentId);
 
   const locations = locationsResult?.items ?? [];
   const totalCount = locationsResult?.totalCount ?? 0;
@@ -66,6 +71,41 @@ export default function LocationPage() {
 
   const listOffset = (currentPage - 1) * PAGE_SIZE;
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === locations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(locations.map((loc) => loc.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setDeleteMessage(null);
+    try {
+      const result = await deleteLocations.mutateAsync(ids);
+      setSelectedIds(new Set());
+      setDeleteMessage(`Deleted ${result.deleted} location point(s).`);
+    } catch (err) {
+      setDeleteMessage(
+        err instanceof Error ? err.message : 'Failed to delete selected locations'
+      );
+    }
+  };
+
+  const resetSelection = () => setSelectedIds(new Set());
+
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
@@ -79,6 +119,7 @@ export default function LocationPage() {
         onSelect={(id) => {
           setSelectedDeviceId(id);
           setPage(1);
+          resetSelection();
         }}
         isLoading={devicesLoading}
       />
@@ -96,6 +137,16 @@ export default function LocationPage() {
           title="Location Trail"
           subtitle={`${totalCount} recorded points`}
           icon={<MapPin className="h-4 w-4 text-emerald-400" />}
+          action={
+            <BulkDeleteToolbar
+              pageItemCount={locations.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteLocations.isPending}
+              selectAllLabel="Select page"
+            />
+          }
         />
 
         <CardBody className="border-b border-slate-800/80 py-3">
@@ -104,10 +155,17 @@ export default function LocationPage() {
             onChange={(value) => {
               setSearchInput(value);
               setPage(1);
+              resetSelection();
             }}
             placeholder="Search address, provider, or device..."
           />
         </CardBody>
+
+        {deleteMessage && (
+          <CardBody className="border-b border-slate-800/80 py-3">
+            <p className="text-xs text-slate-400">{deleteMessage}</p>
+          </CardBody>
+        )}
 
         <div className="custom-scrollbar max-h-80 divide-y divide-slate-800/60 overflow-y-auto">
           {locations.length === 0 && !locationsLoading && (
@@ -116,29 +174,39 @@ export default function LocationPage() {
               <p className="text-sm text-slate-400">No location points recorded yet</p>
             </CardBody>
           )}
-          {locations.map((loc, index) => (
-            <div
-              key={loc.id}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3.5 sm:px-6"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-400">
-                {totalCount - listOffset - index}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-200">
-                  {childNameMap[loc.device_id] || 'Device'}
+          {locations.map((loc, index) => {
+            const isSelected = selectedIds.has(loc.id);
+
+            return (
+              <div
+                key={loc.id}
+                className={`grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 px-4 py-3.5 transition-colors duration-200 sm:px-6 ${
+                  isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
+                }`}
+              >
+                <SelectToggle
+                  isSelected={isSelected}
+                  onClick={() => toggleSelect(loc.id)}
+                />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-400">
+                  {totalCount - listOffset - index}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-200">
+                    {childNameMap[loc.device_id] || 'Device'}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {loc.latitude.toFixed(5)}, {loc.longitude.toFixed(5)}
+                    {loc.accuracy ? ` · ±${loc.accuracy.toFixed(0)}m` : ''}
+                    {loc.address ? ` · ${loc.address}` : ''}
+                  </p>
+                </div>
+                <p className="shrink-0 whitespace-nowrap text-[11px] text-slate-600">
+                  {formatTimestamp(loc.recorded_at)}
                 </p>
-                <p className="truncate text-xs text-slate-500">
-                  {loc.latitude.toFixed(5)}, {loc.longitude.toFixed(5)}
-                  {loc.accuracy ? ` · ±${loc.accuracy.toFixed(0)}m` : ''}
-                  {loc.address ? ` · ${loc.address}` : ''}
-                </p>
               </div>
-              <p className="shrink-0 whitespace-nowrap text-[11px] text-slate-600">
-                {formatTimestamp(loc.recorded_at)}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <Pagination
@@ -146,7 +214,10 @@ export default function LocationPage() {
           totalPages={totalPages}
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            resetSelection();
+          }}
           isLoading={locationsLoading}
         />
       </Card>

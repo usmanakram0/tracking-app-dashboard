@@ -11,6 +11,8 @@ import {
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 
 type NotificationFeedProps = {
   notifications: NotificationLog[];
@@ -26,6 +28,12 @@ type NotificationFeedProps = {
   appFilter: string;
   onAppFilterChange: (filter: string) => void;
   childNameMap: Record<string, string>;
+  selectedIds: Set<number>;
+  onToggleSelect: (id: number) => void;
+  onToggleSelectAll: () => void;
+  onDeleteSelected: () => void;
+  isDeleting: boolean;
+  deleteMessage: string | null;
 };
 
 export function NotificationFeed({
@@ -42,6 +50,12 @@ export function NotificationFeed({
   appFilter,
   onAppFilterChange,
   childNameMap,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  onDeleteSelected,
+  isDeleting,
+  deleteMessage,
 }: NotificationFeedProps) {
   return (
     <Card className="portal-feed flex h-full min-h-[480px] flex-col">
@@ -50,10 +64,20 @@ export function NotificationFeed({
         subtitle={`${totalCount} notifications`}
         icon={<Bell className="h-4 w-4 text-emerald-400" />}
         action={
-          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            Live
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BulkDeleteToolbar
+              pageItemCount={notifications.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={onToggleSelectAll}
+              onDelete={onDeleteSelected}
+              isDeleting={isDeleting}
+              selectAllLabel="Select page"
+            />
+            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              Live
+            </span>
+          </div>
         }
       />
 
@@ -81,6 +105,12 @@ export function NotificationFeed({
           ))}
         </div>
       </CardBody>
+
+      {deleteMessage && (
+        <CardBody className="border-b border-slate-800/80 py-3">
+          <p className="text-xs text-slate-400">{deleteMessage}</p>
+        </CardBody>
+      )}
 
       <div className="custom-scrollbar flex-1 overflow-y-auto">
         {isLoading && (
@@ -115,12 +145,20 @@ export function NotificationFeed({
               const fullText = getNotificationFullText(n);
               const sender = n.title || n.conversation_title || 'Unknown';
               const appLabel = n.app_name || n.app_package;
+              const isSelected = selectedIds.has(n.id);
 
               return (
                 <div
                   key={n.id}
-                  className="grid grid-cols-[auto_1fr_auto] items-start gap-3 px-4 py-4 transition-colors duration-200 hover:bg-slate-800/25 sm:gap-4 sm:px-6"
+                  className={`grid grid-cols-[auto_auto_1fr_auto] items-start gap-3 px-4 py-4 transition-colors duration-200 sm:gap-4 sm:px-6 ${
+                    isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
+                  }`}
                 >
+                  <SelectToggle
+                    isSelected={isSelected}
+                    onClick={() => onToggleSelect(n.id)}
+                  />
+
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-slate-900 sm:h-11 sm:w-11 ${getAppIconColor(n.app_package)}`}
                   >
@@ -151,7 +189,7 @@ export function NotificationFeed({
                     </p>
                   </div>
 
-                  <p className="col-span-3 text-[11px] text-slate-600 sm:hidden">
+                  <p className="col-span-4 text-[11px] text-slate-600 sm:hidden">
                     {formatTimestamp(n.posted_at)}
                   </p>
                 </div>

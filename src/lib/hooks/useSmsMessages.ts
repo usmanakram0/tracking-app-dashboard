@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -9,6 +9,7 @@ import {
   getPageRange,
   type PaginatedResult,
 } from '@/lib/pagination';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import type { SmsMessage } from '@/lib/types';
 
 type SmsQueryOptions = {
@@ -87,26 +88,5 @@ export function useSmsMessages(
 }
 
 export function useDeleteSmsMessages(parentId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (items: SmsMessage[]) => {
-      if (!parentId || items.length === 0) return;
-      const supabase = createClient();
-      const ids = items.map((item) => item.id);
-
-      const { error } = await supabase
-        .from('sms_messages')
-        .delete()
-        .in('id', ids)
-        .eq('parent_id', parentId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sms-messages', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['sms-quota', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['devices', parentId] });
-    },
-  });
+  return useDeleteItems(parentId, 'sms', ['sms-messages']);
 }

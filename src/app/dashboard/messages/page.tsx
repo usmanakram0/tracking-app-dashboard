@@ -9,9 +9,12 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useDeleteNotifications } from '@/lib/hooks/useNotifications';
 import { useWhatsAppMessages } from '@/lib/hooks/useWhatsAppMessages';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { PAGE_SIZE } from '@/lib/pagination';
 import {
   formatTimestamp,
@@ -72,6 +75,8 @@ export default function MessagesPage() {
   const [expandedContact, setExpandedContact] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
@@ -93,6 +98,7 @@ export default function MessagesPage() {
     page,
     search: debouncedSearch,
   });
+  const deleteMessages = useDeleteNotifications(parentId);
 
   const messages = messageResult?.items ?? [];
   const totalCount = messageResult?.totalCount ?? 0;
@@ -112,6 +118,41 @@ export default function MessagesPage() {
     [messages]
   );
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === messages.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(messages.map((m) => m.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setDeleteMessage(null);
+    try {
+      const result = await deleteMessages.mutateAsync(ids);
+      setSelectedIds(new Set());
+      setDeleteMessage(`Deleted ${result.deleted} message(s).`);
+    } catch (err) {
+      setDeleteMessage(
+        err instanceof Error ? err.message : 'Failed to delete selected messages'
+      );
+    }
+  };
+
+  const resetSelection = () => setSelectedIds(new Set());
+
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
@@ -125,6 +166,7 @@ export default function MessagesPage() {
         onSelect={(id) => {
           setSelectedDeviceId(id);
           setPage(1);
+          resetSelection();
         }}
         isLoading={devicesLoading}
       />
@@ -134,6 +176,16 @@ export default function MessagesPage() {
           title="Messages by Contact"
           subtitle={`${contactGroups.length} contacts on page · ${totalCount} messages total`}
           icon={<MessageCircle className="h-4 w-4 text-emerald-400" />}
+          action={
+            <BulkDeleteToolbar
+              pageItemCount={messages.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteMessages.isPending}
+              selectAllLabel="Select page"
+            />
+          }
         />
 
         <CardBody className="border-b border-slate-800/80 py-3">
@@ -142,10 +194,17 @@ export default function MessagesPage() {
             onChange={(value) => {
               setSearchInput(value);
               setPage(1);
+              resetSelection();
             }}
             placeholder="Search contact name or message text..."
           />
         </CardBody>
+
+        {deleteMessage && (
+          <CardBody className="border-b border-slate-800/80 py-3">
+            <p className="text-xs text-slate-400">{deleteMessage}</p>
+          </CardBody>
+        )}
 
         {messagesLoading ? (
           <CardBody className="flex justify-center py-16">
@@ -202,16 +261,27 @@ export default function MessagesPage() {
                         const fullText = getNotificationFullText(message);
                         const senderLabel =
                           message.title || message.conversation_title || 'Unknown';
+                        const isSelected = selectedIds.has(message.id);
 
                         return (
                           <div
                             key={message.id}
-                            className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3"
+                            className={`rounded-xl border px-4 py-3 ${
+                              isSelected
+                                ? 'border-emerald-500/40 bg-emerald-500/5'
+                                : 'border-slate-800/80 bg-slate-900/40'
+                            }`}
                           >
                             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-emerald-400/90">
-                                {senderLabel}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <SelectToggle
+                                  isSelected={isSelected}
+                                  onClick={() => toggleSelect(message.id)}
+                                />
+                                <span className="text-xs font-medium text-emerald-400/90">
+                                  {senderLabel}
+                                </span>
+                              </div>
                               <span className="text-[11px] text-slate-600">
                                 {formatTimestamp(message.posted_at)}
                               </span>
@@ -235,7 +305,10 @@ export default function MessagesPage() {
           totalPages={totalPages}
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            resetSelection();
+          }}
           isLoading={messagesLoading}
         />
       </Card>

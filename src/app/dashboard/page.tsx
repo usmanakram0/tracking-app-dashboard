@@ -11,7 +11,11 @@ import { StatsRow } from '@/components/dashboard/StatsRow';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
-import { useNotifications, useNotificationsCount } from '@/lib/hooks/useNotifications';
+import {
+  useDeleteNotifications,
+  useNotifications,
+  useNotificationsCount,
+} from '@/lib/hooks/useNotifications';
 import { PAGE_SIZE } from '@/lib/pagination';
 
 export default function DashboardPage() {
@@ -19,6 +23,8 @@ export default function DashboardPage() {
   const [appFilter, setAppFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchInput);
   const [highlightGps, setHighlightGps] = useState<{
     lat: number;
@@ -49,6 +55,7 @@ export default function DashboardPage() {
     selectedDeviceId,
     appFilter
   );
+  const deleteNotifications = useDeleteNotifications(parentId);
 
   const notifications = notificationResult?.items ?? [];
   const notificationPage = notificationResult?.page ?? 1;
@@ -70,6 +77,41 @@ export default function DashboardPage() {
     return map;
   }, [devices]);
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === notifications.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(notifications.map((n) => n.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setDeleteMessage(null);
+    try {
+      const result = await deleteNotifications.mutateAsync(ids);
+      setSelectedIds(new Set());
+      setDeleteMessage(`Deleted ${result.deleted} notification(s).`);
+    } catch (err) {
+      setDeleteMessage(
+        err instanceof Error ? err.message : 'Failed to delete selected notifications'
+      );
+    }
+  };
+
+  const resetSelection = () => setSelectedIds(new Set());
+
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
@@ -85,6 +127,7 @@ export default function DashboardPage() {
         onSelect={(id) => {
           setSelectedDeviceId(id);
           setPage(1);
+          resetSelection();
         }}
         isLoading={devicesLoading}
       />
@@ -121,16 +164,27 @@ export default function DashboardPage() {
             onSearchChange={(value) => {
               setSearchInput(value);
               setPage(1);
+              resetSelection();
             }}
-            onPageChange={setPage}
+            onPageChange={(nextPage) => {
+              setPage(nextPage);
+              resetSelection();
+            }}
             isLoading={notificationsLoading}
             isError={notificationsError}
             appFilter={appFilter}
             onAppFilterChange={(filter) => {
               setAppFilter(filter);
               setPage(1);
+              resetSelection();
             }}
             childNameMap={childNameMap}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            onDeleteSelected={handleDeleteSelected}
+            isDeleting={deleteNotifications.isPending}
+            deleteMessage={deleteMessage}
           />
         </div>
       </div>

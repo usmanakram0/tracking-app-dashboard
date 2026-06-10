@@ -9,6 +9,7 @@ import {
   getPageRange,
   type PaginatedResult,
 } from '@/lib/pagination';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import type { PhoneContact } from '@/lib/types';
 
 type ContactQueryOptions = {
@@ -89,4 +90,8 @@ export function usePhoneContacts(
   }, [parentId, queryClient]);
 
   return query;
+}
+
+export function useDeletePhoneContacts(parentId: string | undefined) {
+  return useDeleteItems(parentId, 'contacts', ['phone-contacts']);
 }

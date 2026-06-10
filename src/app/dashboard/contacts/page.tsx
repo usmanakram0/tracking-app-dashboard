@@ -9,9 +9,14 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Pagination } from '@/components/ui/Pagination';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { useDevices } from '@/lib/hooks/useDevices';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
-import { usePhoneContacts } from '@/lib/hooks/usePhoneContacts';
+import {
+  useDeletePhoneContacts,
+  usePhoneContacts,
+} from '@/lib/hooks/usePhoneContacts';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { formatTimestamp } from '@/lib/utils';
 
@@ -19,6 +24,8 @@ export default function ContactsPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(searchInput);
 
   const { data: user } = useQuery({
@@ -40,6 +47,7 @@ export default function ContactsPage() {
     page,
     search: debouncedSearch,
   });
+  const deleteContacts = useDeletePhoneContacts(parentId);
 
   const contacts = contactResult?.items ?? [];
   const totalCount = contactResult?.totalCount ?? 0;
@@ -54,6 +62,41 @@ export default function ContactsPage() {
     return map;
   }, [devices]);
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === contacts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(contacts.map((c) => c.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setDeleteMessage(null);
+    try {
+      const result = await deleteContacts.mutateAsync(ids);
+      setSelectedIds(new Set());
+      setDeleteMessage(`Deleted ${result.deleted} contact(s).`);
+    } catch (err) {
+      setDeleteMessage(
+        err instanceof Error ? err.message : 'Failed to delete selected contacts'
+      );
+    }
+  };
+
+  const resetSelection = () => setSelectedIds(new Set());
+
   return (
     <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
@@ -67,6 +110,7 @@ export default function ContactsPage() {
         onSelect={(id) => {
           setSelectedDeviceId(id);
           setPage(1);
+          resetSelection();
         }}
         isLoading={devicesLoading}
       />
@@ -76,6 +120,16 @@ export default function ContactsPage() {
           title="Contact List"
           subtitle={`${totalCount} contacts`}
           icon={<Contact className="h-4 w-4 text-blue-400" />}
+          action={
+            <BulkDeleteToolbar
+              pageItemCount={contacts.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteContacts.isPending}
+              selectAllLabel="Select page"
+            />
+          }
         />
 
         <CardBody className="border-b border-slate-800/80 py-3">
@@ -84,10 +138,17 @@ export default function ContactsPage() {
             onChange={(value) => {
               setSearchInput(value);
               setPage(1);
+              resetSelection();
             }}
             placeholder="Search name, phone, or email..."
           />
         </CardBody>
+
+        {deleteMessage && (
+          <CardBody className="border-b border-slate-800/80 py-3">
+            <p className="text-xs text-slate-400">{deleteMessage}</p>
+          </CardBody>
+        )}
 
         {contactsLoading ? (
           <CardBody className="flex justify-center py-16">
@@ -109,12 +170,20 @@ export default function ContactsPage() {
           <div className="divide-y divide-slate-800/80">
             {contacts.map((contact) => {
               const childName = childNameMap[contact.device_id] || 'Device';
+              const isSelected = selectedIds.has(contact.id);
 
               return (
                 <div
                   key={contact.id}
-                  className="flex items-start gap-3 px-4 py-4 transition-colors duration-200 hover:bg-slate-800/25 sm:px-6"
+                  className={`flex items-start gap-3 px-4 py-4 transition-colors duration-200 sm:px-6 ${
+                    isSelected ? 'bg-emerald-500/5' : 'hover:bg-slate-800/25'
+                  }`}
                 >
+                  <SelectToggle
+                    isSelected={isSelected}
+                    onClick={() => toggleSelect(contact.id)}
+                  />
+
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 ring-1 ring-blue-500/25">
                     <Contact className="h-4 w-4 text-blue-300" />
                   </div>
@@ -159,7 +228,10 @@ export default function ContactsPage() {
           totalPages={totalPages}
           totalCount={totalCount}
           pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            resetSelection();
+          }}
           isLoading={contactsLoading}
         />
       </Card>

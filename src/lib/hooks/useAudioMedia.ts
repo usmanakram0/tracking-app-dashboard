@@ -1,15 +1,15 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CHILD_AUDIO_BUCKET } from '@/lib/storage';
 import {
   buildIlikePattern,
   buildPaginatedResult,
   getPageRange,
   type PaginatedResult,
 } from '@/lib/pagination';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import type { AudioMedia } from '@/lib/types';
 
 type AudioQueryOptions = {
@@ -96,34 +96,5 @@ export function useAudioMedia(
 }
 
 export function useDeleteAudioMedia(parentId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (items: AudioMedia[]) => {
-      if (!parentId || items.length === 0) return;
-      const supabase = createClient();
-
-      const storagePaths = items.map((item) => item.storage_path);
-      const ids = items.map((item) => item.id);
-
-      const { error: storageError } = await supabase.storage
-        .from(CHILD_AUDIO_BUCKET)
-        .remove(storagePaths);
-
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
-        .from('audio_media')
-        .delete()
-        .in('id', ids)
-        .eq('parent_id', parentId);
-
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['audio-media', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['audio-quota', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['devices', parentId] });
-    },
-  });
+  return useDeleteItems(parentId, 'audio', ['audio-media']);
 }

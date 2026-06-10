@@ -3,14 +3,9 @@
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  CheckSquare,
-  Loader2,
-  MessageSquare,
-  Square,
-  Trash2,
-} from 'lucide-react';
+import { AlertTriangle, Loader2, MessageSquare } from 'lucide-react';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -147,15 +142,15 @@ export default function SmsPage() {
   };
 
   const handleDeleteSelected = async () => {
-    const items = smsList.filter((item) => selectedIds.has(item.id));
-    if (items.length === 0) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
 
     setDeleteMessage(null);
     try {
-      await deleteSms.mutateAsync(items);
+      const result = await deleteSms.mutateAsync(ids);
       setSelectedIds(new Set());
       setDeleteMessage(
-        `Deleted ${items.length} message(s). Sync may resume if storage was full.`
+        `Deleted ${result.deleted} message(s). Sync may resume if storage was full.`
       );
     } catch (err) {
       setDeleteMessage(
@@ -220,32 +215,14 @@ export default function SmsPage() {
           subtitle={`${smsGroups.length} numbers · ${totalCount} messages`}
           icon={<MessageSquare className="h-4 w-4 text-blue-400" />}
           action={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSelectAll}
-                disabled={smsList.length === 0}
-                className="portal-action-btn portal-action-btn-muted flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
-              >
-                {selectedIds.size === smsList.length && smsList.length > 0 ? (
-                  <CheckSquare className="h-3.5 w-3.5" />
-                ) : (
-                  <Square className="h-3.5 w-3.5" />
-                )}
-                Select all
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={selectedIds.size === 0 || deleteSms.isPending}
-                className="portal-action-btn portal-action-btn-danger flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 ring-1 ring-red-500/25 transition-all duration-200 hover:bg-red-500/25 disabled:opacity-40"
-              >
-                {deleteSms.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Delete ({selectedIds.size})
-              </button>
-            </div>
+            <BulkDeleteToolbar
+              pageItemCount={smsList.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteSms.isPending}
+              selectAllLabel="Select page"
+            />
           }
         />
 
@@ -330,16 +307,10 @@ export default function SmsPage() {
                           >
                             <div className="mb-2 flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <button
+                                <SelectToggle
+                                  isSelected={isSelected}
                                   onClick={() => toggleSelect(message.id)}
-                                  className="rounded-md p-1 text-slate-400 transition-colors duration-200 hover:text-emerald-300"
-                                >
-                                  {isSelected ? (
-                                    <CheckSquare className="h-4 w-4 text-emerald-400" />
-                                  ) : (
-                                    <Square className="h-4 w-4" />
-                                  )}
-                                </button>
+                                />
                                 <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-300 ring-1 ring-blue-500/25">
                                   {TYPE_LABELS[message.message_type]}
                                 </span>

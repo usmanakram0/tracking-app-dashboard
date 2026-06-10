@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import {
   buildIlikePattern,
   buildPaginatedResult,
@@ -124,6 +125,14 @@ export function useNotificationsCount(
     enabled: !!parentId,
     refetchInterval: 60 * 1000,
   });
+}
+
+export function useDeleteNotifications(parentId: string | undefined) {
+  return useDeleteItems(parentId, 'notifications', [
+    'notifications',
+    'notifications-count',
+    'whatsapp-messages',
+  ]);
 }
 
 export { PAGE_SIZE };

@@ -3,15 +3,9 @@
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  CheckSquare,
-  Loader2,
-  Mic,
-  Music,
-  Square,
-  Trash2,
-} from 'lucide-react';
+import { AlertTriangle, Loader2, Mic, Music } from 'lucide-react';
+import { BulkDeleteToolbar } from '@/components/ui/BulkDeleteToolbar';
+import { SelectToggle } from '@/components/ui/SelectToggle';
 import { ChildSelector } from '@/components/dashboard/ChildSelector';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -113,18 +107,18 @@ export default function AudioPage() {
   };
 
   const handleDeleteSelected = async () => {
-    const items = audioItems.filter((item) => selectedIds.has(item.id));
-    if (items.length === 0) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
 
     setDeleteMessage(null);
     try {
-      await deleteAudio.mutateAsync(items);
-      setSelectedIds(new Set());
+      const result = await deleteAudio.mutateAsync(ids);
       if (playingId && selectedIds.has(playingId)) {
         setPlayingId(null);
       }
+      setSelectedIds(new Set());
       setDeleteMessage(
-        `Deleted ${items.length} file(s). Sync may resume if storage was full.`
+        `Deleted ${result.deleted} file(s). Sync may resume if storage was full.`
       );
     } catch (err) {
       setDeleteMessage(
@@ -189,32 +183,14 @@ export default function AudioPage() {
           subtitle={`${totalCount} files`}
           icon={<Music className="h-4 w-4 text-purple-400" />}
           action={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSelectAll}
-                disabled={audioItems.length === 0}
-                className="portal-action-btn portal-action-btn-muted flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
-              >
-                {selectedIds.size === audioItems.length && audioItems.length > 0 ? (
-                  <CheckSquare className="h-3.5 w-3.5" />
-                ) : (
-                  <Square className="h-3.5 w-3.5" />
-                )}
-                Select all
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={selectedIds.size === 0 || deleteAudio.isPending}
-                className="portal-action-btn portal-action-btn-danger flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 ring-1 ring-red-500/25 transition-all duration-200 hover:bg-red-500/25 disabled:opacity-40"
-              >
-                {deleteAudio.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-                Delete ({selectedIds.size})
-              </button>
-            </div>
+            <BulkDeleteToolbar
+              pageItemCount={audioItems.length}
+              selectedCount={selectedIds.size}
+              onToggleSelectAll={toggleSelectAll}
+              onDelete={handleDeleteSelected}
+              isDeleting={deleteAudio.isPending}
+              selectAllLabel="Select page"
+            />
           }
         />
 
@@ -267,16 +243,10 @@ export default function AudioPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <button
+                    <SelectToggle
+                      isSelected={isSelected}
                       onClick={() => toggleSelect(item.id)}
-                      className="mt-1 shrink-0 rounded-md p-1 text-slate-400 transition-colors duration-200 hover:text-emerald-300"
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="h-4 w-4 text-emerald-400" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
+                    />
 
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 ring-1 ring-purple-500/25">
                       {item.audio_category === 'voice' || item.audio_category === 'recording' ? (

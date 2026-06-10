@@ -8,6 +8,7 @@ import {
   getPageRange,
   type PaginatedResult,
 } from '@/lib/pagination';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import type { LocationLog } from '@/lib/types';
 
 type LocationQueryOptions = {
@@ -60,4 +61,8 @@ export function useLocations(
     enabled: !!parentId,
     placeholderData: (prev) => prev,
   });
+}
+
+export function useDeleteLocations(parentId: string | undefined) {
+  return useDeleteItems(parentId, 'locations', ['locations']);
 }

@@ -1,15 +1,15 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CHILD_GALLERY_BUCKET } from '@/lib/storage';
 import {
   buildIlikePattern,
   buildPaginatedResult,
   getPageRange,
   type PaginatedResult,
 } from '@/lib/pagination';
+import { useDeleteItems } from '@/lib/hooks/useDeleteItems';
 import type { GalleryMedia } from '@/lib/types';
 
 type GalleryQueryOptions = {
@@ -94,34 +94,5 @@ export function useGalleryMedia(
 }
 
 export function useDeleteGalleryMedia(parentId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (items: GalleryMedia[]) => {
-      if (!parentId || items.length === 0) return;
-      const supabase = createClient();
-
-      const storagePaths = items.map((item) => item.storage_path);
-      const ids = items.map((item) => item.id);
-
-      const { error: storageError } = await supabase.storage
-        .from(CHILD_GALLERY_BUCKET)
-        .remove(storagePaths);
-
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
-        .from('gallery_media')
-        .delete()
-        .in('id', ids)
-        .eq('parent_id', parentId);
-
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-media', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['gallery-quota', parentId] });
-      queryClient.invalidateQueries({ queryKey: ['devices', parentId] });
-    },
-  });
+  return useDeleteItems(parentId, 'gallery', ['gallery-media']);
 }
