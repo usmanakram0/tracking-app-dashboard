@@ -28,7 +28,7 @@ export function NotificationFeed({
   childNameMap,
 }: NotificationFeedProps) {
   return (
-    <Card className="flex h-full min-h-[480px] flex-col">
+    <Card className="portal-feed flex h-full min-h-[480px] flex-col">
       <CardHeader
         title="Live Activity Feed"
         subtitle="Real-time notification stream"

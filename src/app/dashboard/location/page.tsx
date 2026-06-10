@@ -52,7 +52,7 @@ export default function LocationPage() {
   }, [devices]);
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
         title="Location History"
         description="GPS trail and historical coordinates from child devices"

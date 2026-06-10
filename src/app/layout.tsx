@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import './globals.css';
@@ -16,6 +16,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Parent Portal — Child Monitor',
   description: 'Real-time parental monitoring dashboard',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#020617',
 };
 
 export default function RootLayout({

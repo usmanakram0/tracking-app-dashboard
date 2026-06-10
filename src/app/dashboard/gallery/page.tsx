@@ -108,7 +108,7 @@ export default function GalleryPage() {
     : null;
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
         title="Gallery"
         description="New photos and videos synced from child devices. Only media captured after setup is uploaded."

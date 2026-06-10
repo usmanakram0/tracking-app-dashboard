@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
-/* Ensure Tailwind scans all app source files in production builds */
-@source "../../src/**/*.{js,ts,jsx,tsx,mdx}";
+/* Scan all source files for Tailwind utilities (production + Netlify) */
+@source "../**/*.{js,ts,jsx,tsx,mdx}";
 
 @import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #020617;
   --foreground: #f1f5f9;
+  --portal-max-width: 80rem;
+  --portal-sidebar-width: 16rem;
+  --portal-content-padding-x: 1rem;
+  --portal-content-padding-y: 1.25rem;
 }
 
 @theme inline {
@@ -17,10 +21,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
 }
 
 /* Subtle cosmic background */
@@ -29,6 +45,166 @@ body {
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.08), transparent),
     radial-gradient(ellipse 60% 40% at 100% 0%, rgba(59, 130, 246, 0.06), transparent);
+}
+
+/* ── Production-safe portal layout (works even if Tailwind utilities fail) ── */
+
+.portal-shell {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.portal-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  display: none;
+  width: var(--portal-sidebar-width);
+  flex-direction: column;
+  border-right: 1px solid rgba(30, 41, 59, 0.8);
+  background-color: rgba(2, 6, 23, 0.95);
+}
+
+.portal-main {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.portal-content {
+  width: 100%;
+  max-width: var(--portal-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--portal-content-padding-y) var(--portal-content-padding-x) 6rem;
+}
+
+.portal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.portal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.portal-split-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  width: 100%;
+  align-items: start;
+}
+
+.portal-split-side {
+  width: 100%;
+}
+
+.portal-split-main {
+  width: 100%;
+}
+
+.portal-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(30, 41, 59, 0.8);
+  background-color: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.portal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  padding: 1rem 1.25rem;
+}
+
+.portal-card-body {
+  padding: 1rem 1.25rem;
+}
+
+.portal-feed {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  width: 100%;
+}
+
+.portal-page-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #f8fafc;
+}
+
+.portal-page-desc {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --portal-content-padding-x: 1.5rem;
+  }
+
+  .portal-page {
+    gap: 1.5rem;
+  }
+
+  .portal-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .portal-card-header,
+  .portal-card-body {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --portal-content-padding-y: 2rem;
+  }
+
+  .portal-sidebar {
+    display: flex;
+  }
+
+  .portal-main {
+    padding-left: var(--portal-sidebar-width);
+  }
+
+  .portal-content {
+    padding-bottom: 2rem;
+  }
+
+  .portal-split-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  .portal-split-side {
+    grid-column: span 4 / span 4;
+    position: sticky;
+    top: 1.5rem;
+  }
+
+  .portal-split-main {
+    grid-column: span 8 / span 8;
+  }
 }
 
 /* Custom scrollbar */

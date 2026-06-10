@@ -31,11 +31,11 @@ export default async function DashboardLayout({
     'parent';
 
   return (
-    <div className="dashboard-bg min-h-screen">
+    <div className="portal-shell dashboard-bg min-h-screen">
       <Sidebar username={username} />
       <MobileHeader username={username} />
-      <main className="lg:pl-64">
-        <div className="mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
+      <main className="portal-main lg:pl-64">
+        <div className="portal-content mx-auto w-full max-w-7xl px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
           {children}
         </div>
       </main>

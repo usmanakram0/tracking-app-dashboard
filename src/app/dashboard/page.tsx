@@ -53,7 +53,7 @@ export default function DashboardPage() {
   }, [devices]);
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="portal-page flex flex-col gap-5 sm:gap-6">
       <PageHeader
         title="Dashboard"
         description="Monitor notifications and device status in real time"
@@ -68,8 +68,8 @@ export default function DashboardPage() {
         isLoading={devicesLoading}
       />
 
-      <div className="grid items-start gap-5 lg:grid-cols-12 lg:gap-6">
-        <div className="lg:col-span-4 lg:sticky lg:top-6">
+      <div className="portal-split-grid grid items-start gap-5 lg:grid-cols-12 lg:gap-6">
+        <div className="portal-split-side lg:col-span-4 lg:sticky lg:top-6">
           <DeviceManagementCard
             device={selectedDevice}
             parentId={parentId}
@@ -89,7 +89,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="lg:col-span-8">
+        <div className="portal-split-main lg:col-span-8">
           <NotificationFeed
             notifications={notifications}
             isLoading={notificationsLoading}

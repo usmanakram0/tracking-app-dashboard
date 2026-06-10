@@ -45,7 +45,7 @@ export function StatsRow({ devices, notificationCount }: StatsRowProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="portal-stats-grid grid grid-cols-2 gap-3 sm:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (

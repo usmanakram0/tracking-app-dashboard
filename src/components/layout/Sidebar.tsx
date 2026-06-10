@@ -27,7 +27,7 @@ export function Sidebar({ username }: { username: string }) {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-800/80 bg-slate-950/95 backdrop-blur-xl lg:flex">
+    <aside className="portal-sidebar fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-800/80 bg-slate-950/95 backdrop-blur-xl lg:flex">
       <div className="flex items-center gap-3 border-b border-slate-800/80 px-5 py-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 ring-1 ring-emerald-400/30">
           <Shield className="h-5 w-5 text-emerald-400" />
