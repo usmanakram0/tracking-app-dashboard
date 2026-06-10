@@ -50,7 +50,7 @@ export function StatsRow({ devices, notificationCount }: StatsRowProps) {
         const Icon = stat.icon;
         return (
           <Card key={stat.label}>
-            <CardBody className="flex items-center gap-3 py-3.5">
+            <CardBody className="portal-stat-inner flex items-center gap-3 py-3.5">
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${stat.bg}`}>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </div>

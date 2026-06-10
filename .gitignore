@@ -37,4 +37,4 @@ next-env.d.ts
 # Local-only project files (not pushed)
 GOOGLE_AI_STUDIO_*.md
 supabase/
-dashboard/
+/dashboard/

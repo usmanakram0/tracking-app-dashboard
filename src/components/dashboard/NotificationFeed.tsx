@@ -5,7 +5,7 @@ import type { NotificationLog } from '@/lib/types';
 import {
   formatTimestamp,
   getAppIconColor,
-  getNotificationExcerpt,
+  getNotificationFullText,
   APP_FILTERS,
 } from '@/lib/utils';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -42,15 +42,15 @@ export function NotificationFeed({
       />
 
       <CardBody className="border-b border-slate-800/80 py-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="portal-filter-row flex flex-wrap gap-2">
           {APP_FILTERS.map((filter) => (
             <button
               key={filter.id}
               onClick={() => onAppFilterChange(filter.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+              className={`portal-filter-pill rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                 appFilter === filter.id
-                  ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
-                  : 'bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  ? 'portal-filter-pill-active bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
+                  : 'portal-filter-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
               {filter.label}
@@ -89,7 +89,7 @@ export function NotificationFeed({
           <div className="divide-y divide-slate-800/60">
             {notifications.map((n) => {
               const childName = childNameMap[n.device_id] || 'Device';
-              const excerpt = getNotificationExcerpt(n);
+              const fullText = getNotificationFullText(n);
               const sender = n.title || n.conversation_title || 'Unknown';
               const appLabel = n.app_name || n.app_package;
 
@@ -117,8 +117,8 @@ export function NotificationFeed({
                     <p className="mt-1 truncate text-sm font-medium text-slate-300">
                       {sender}
                     </p>
-                    <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-400">
-                      {excerpt || 'No preview text'}
+                    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-400">
+                      {fullText || 'No message text'}
                     </p>
                   </div>
 

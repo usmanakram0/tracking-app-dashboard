@@ -9,6 +9,14 @@ export function formatTimestamp(value: string | null | undefined): string {
   }
 }
 
+export function formatDurationMs(ms: number | null | undefined): string {
+  if (!ms || ms <= 0) return '--:--';
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
 export function formatRelative(value: string | null | undefined): string {
   if (!value) return 'Never';
   try {
@@ -28,14 +36,33 @@ export function isDeviceOnline(lastSeen: string | null | undefined): boolean {
   }
 }
 
-export function getNotificationExcerpt(notification: {
+export function getNotificationFullText(notification: {
   big_text?: string | null;
   message?: string | null;
   sub_text?: string | null;
+  summary_text?: string | null;
+  info_text?: string | null;
 }): string {
-  const text = notification.big_text || notification.message || notification.sub_text || '';
-  if (text.length <= 120) return text;
-  return `${text.slice(0, 120)}...`;
+  const parts = [
+    notification.big_text,
+    notification.message,
+    notification.sub_text,
+    notification.summary_text,
+    notification.info_text,
+  ].filter((part): part is string => Boolean(part && part.trim()));
+
+  if (parts.length === 0) return '';
+
+  return parts.reduce((longest, part) =>
+    part.length > longest.length ? part : longest
+  );
+}
+
+export function getNotificationContactName(notification: {
+  title?: string | null;
+  conversation_title?: string | null;
+}): string {
+  return notification.conversation_title || notification.title || 'Unknown contact';
 }
 
 export function getAppIconColor(appPackage: string): string {

@@ -115,7 +115,7 @@ export default function GalleryPage() {
       />
 
       {storageFull && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3.5 ring-1 ring-amber-500/20">
+        <div className="portal-alert-banner flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3.5 ring-1 ring-amber-500/20">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
           <div>
             <p className="text-sm font-semibold text-amber-200">Supabase storage is full</p>
@@ -163,7 +163,7 @@ export default function GalleryPage() {
               <button
                 onClick={toggleSelectAll}
                 disabled={media.length === 0}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
+                className="portal-action-btn portal-action-btn-muted flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition-colors duration-200 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
               >
                 {selectedIds.size === media.length && media.length > 0 ? (
                   <CheckSquare className="h-3.5 w-3.5" />
@@ -175,7 +175,7 @@ export default function GalleryPage() {
               <button
                 onClick={handleDeleteSelected}
                 disabled={selectedIds.size === 0 || deleteMedia.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 ring-1 ring-red-500/25 transition-all duration-200 hover:bg-red-500/25 disabled:opacity-40"
+                className="portal-action-btn portal-action-btn-danger flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1.5 text-xs font-medium text-red-300 ring-1 ring-red-500/25 transition-all duration-200 hover:bg-red-500/25 disabled:opacity-40"
               >
                 {deleteMedia.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -207,7 +207,7 @@ export default function GalleryPage() {
             </p>
           </CardBody>
         ) : (
-          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:gap-4 lg:p-6">
+          <div className="portal-gallery-grid grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:gap-4 lg:p-6">
             {media.map((item) => {
               const url = getPublicStorageUrl(
                 CHILD_GALLERY_BUCKET,

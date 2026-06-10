@@ -37,13 +37,13 @@ export function ChildSelector({
             ))}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="portal-flex-wrap flex flex-wrap gap-2">
             <button
               onClick={() => onSelect(null)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              className={`portal-pill rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 selectedDeviceId === null
-                  ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
-                  : 'bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  ? 'portal-pill-active-blue bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
+                  : 'portal-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
               }`}
             >
               All Children
@@ -55,10 +55,10 @@ export function ChildSelector({
                 <button
                   key={device.device_id}
                   onClick={() => onSelect(device.device_id)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  className={`portal-pill rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                     isSelected
-                      ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40'
-                      : 'bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      ? 'portal-pill-active-emerald bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40'
+                      : 'portal-pill-inactive bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   }`}
                 >
                   {label}

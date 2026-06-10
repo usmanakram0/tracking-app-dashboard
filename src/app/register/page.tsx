@@ -63,9 +63,9 @@ export default function RegisterPage() {
           onSubmit={handleSubmit}
           className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl"
         >
-          <div className="space-y-5">
+          <div className="portal-form-stack space-y-5">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-300">
+              <label className="portal-label mb-2 block text-sm font-medium text-slate-300">
                 Username
               </label>
               <input
@@ -73,12 +73,12 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                className="portal-input w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="parent_usman"
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-300">
+              <label className="portal-label mb-2 block text-sm font-medium text-slate-300">
                 Email
               </label>
               <input
@@ -86,12 +86,12 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                className="portal-input w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="parent@email.com"
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-300">
+              <label className="portal-label mb-2 block text-sm font-medium text-slate-300">
                 Password
               </label>
               <input
@@ -100,7 +100,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                className="portal-input w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3 text-slate-100 outline-none transition-all duration-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="••••••••"
               />
             </div>
@@ -115,7 +115,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white transition-all duration-200 hover:bg-blue-400 hover:shadow-[0_0_24px_rgba(59,130,246,0.4)] disabled:opacity-50"
+            className="portal-btn portal-btn-solid mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white transition-all duration-200 hover:bg-blue-400 hover:shadow-[0_0_24px_rgba(59,130,246,0.4)] disabled:opacity-50"
           >
             {isLoading ? (
               <>

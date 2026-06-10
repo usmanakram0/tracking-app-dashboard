@@ -6,6 +6,7 @@ export function getPublicStorageUrl(bucket: string, storagePath: string): string
 }
 
 export const CHILD_GALLERY_BUCKET = 'child-gallery';
+export const CHILD_AUDIO_BUCKET = 'child-audio';
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

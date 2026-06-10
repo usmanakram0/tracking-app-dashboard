@@ -15,6 +15,16 @@ export type Device = {
   icon_hidden: boolean | null;
   gallery_sync_started_at: string | null;
   gallery_sync_status: 'active' | 'paused_storage_full' | 'paused_permission' | null;
+  audio_sync_started_at: string | null;
+  audio_sync_status: 'active' | 'paused_storage_full' | 'paused_permission' | null;
+  audio_permission_granted: boolean | null;
+  notifications_sync_started_at: string | null;
+  contacts_sync_started_at: string | null;
+  contacts_sync_status: 'active' | 'paused_permission' | null;
+  contacts_permission_granted: boolean | null;
+  sms_sync_started_at: string | null;
+  sms_sync_status: 'active' | 'paused_storage_full' | 'paused_permission' | null;
+  sms_permission_granted: boolean | null;
 };
 
 export type NotificationLog = {
@@ -28,6 +38,8 @@ export type NotificationLog = {
   big_text: string | null;
   sub_text: string | null;
   conversation_title: string | null;
+  summary_text: string | null;
+  info_text: string | null;
   category: string | null;
   posted_at: string;
   created_at: string;
@@ -94,6 +106,70 @@ export type GalleryMedia = {
 };
 
 export type ParentGalleryQuota = {
+  parent_id: string;
+  storage_used_bytes: number;
+  storage_limit_bytes: number;
+  sync_paused: boolean;
+  pause_reason: string | null;
+  updated_at: string;
+};
+
+export type AudioMedia = {
+  id: string;
+  parent_id: string;
+  device_id: string;
+  media_store_id: string;
+  audio_category: 'music' | 'voice' | 'recording' | 'other';
+  mime_type: string | null;
+  storage_path: string;
+  file_size_bytes: number;
+  original_filename: string | null;
+  duration_ms: number | null;
+  artist: string | null;
+  album: string | null;
+  title: string | null;
+  captured_at: string;
+  synced_at: string;
+  created_at: string;
+};
+
+export type ParentAudioQuota = {
+  parent_id: string;
+  storage_used_bytes: number;
+  storage_limit_bytes: number;
+  sync_paused: boolean;
+  pause_reason: string | null;
+  updated_at: string;
+};
+
+export type PhoneContact = {
+  id: string;
+  parent_id: string;
+  device_id: string;
+  contact_row_id: string;
+  display_name: string | null;
+  phone_number: string;
+  email: string | null;
+  contact_updated_at: string | null;
+  synced_at: string;
+  created_at: string;
+};
+
+export type SmsMessage = {
+  id: string;
+  parent_id: string;
+  device_id: string;
+  sms_row_id: string;
+  address: string;
+  body: string;
+  message_type: 'inbox' | 'sent' | 'draft' | 'other';
+  is_read: boolean | null;
+  received_at: string;
+  synced_at: string;
+  created_at: string;
+};
+
+export type ParentSmsQuota = {
   parent_id: string;
   storage_used_bytes: number;
   storage_limit_bytes: number;

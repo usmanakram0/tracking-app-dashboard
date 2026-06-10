@@ -2,12 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Activity, Images, LogOut, MapPin, Shield } from 'lucide-react';
+import {
+  Activity,
+  Contact,
+  Headphones,
+  Images,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  MessageSquare,
+  Shield,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/dashboard', label: 'Live Feed', icon: Activity },
+  { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
+  { href: '/dashboard/contacts', label: 'Contacts', icon: Contact },
+  { href: '/dashboard/sms', label: 'SMS', icon: MessageSquare },
   { href: '/dashboard/gallery', label: 'Gallery', icon: Images },
+  { href: '/dashboard/audio', label: 'Audio', icon: Headphones },
   { href: '/dashboard/location', label: 'Location', icon: MapPin },
 ];
 
@@ -49,10 +63,10 @@ export function Sidebar({ username }: { username: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+              className={`portal-nav-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  ? 'portal-nav-link-active bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25'
+                  : 'portal-nav-link-inactive text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />

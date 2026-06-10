@@ -90,8 +90,8 @@ export function DeviceManagementCard({
         action={<StatusChip isOnline={online} />}
       />
 
-      <CardBody className="space-y-5">
-        <div className="rounded-xl bg-slate-800/40 px-4 py-3 ring-1 ring-slate-700/50">
+      <CardBody className="portal-stack-5 space-y-5">
+        <div className="portal-info-box rounded-xl bg-slate-800/40 px-4 py-3 ring-1 ring-slate-700/50">
           <p className="text-xs text-slate-500">Last seen</p>
           <p className="mt-0.5 text-sm font-medium text-slate-200">
             {formatRelative(device.last_seen)}
@@ -100,11 +100,11 @@ export function DeviceManagementCard({
 
         <BatteryBar level={battery} />
 
-        <div className="grid gap-2.5">
+        <div className="portal-gap-grid grid gap-2.5">
           <button
             onClick={handleGpsTrack}
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-500/25 transition-all duration-200 hover:bg-emerald-500/25 disabled:opacity-50"
+            className="portal-btn portal-btn-emerald flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-500/25 transition-all duration-200 hover:bg-emerald-500/25 disabled:opacity-50"
           >
             <MapPin className="h-4 w-4 shrink-0" />
             <span>{gpsTrack.isPending ? 'Requesting GPS...' : 'Request Live GPS'}</span>
@@ -112,7 +112,7 @@ export function DeviceManagementCard({
           <button
             onClick={handleHealthCheck}
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500/15 px-4 py-3 text-sm font-semibold text-blue-300 ring-1 ring-blue-500/25 transition-all duration-200 hover:bg-blue-500/25 disabled:opacity-50"
+            className="portal-btn portal-btn-blue flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500/15 px-4 py-3 text-sm font-semibold text-blue-300 ring-1 ring-blue-500/25 transition-all duration-200 hover:bg-blue-500/25 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 shrink-0 ${healthCheck.isPending ? 'animate-spin' : ''}`} />
             <span>{healthCheck.isPending ? 'Checking...' : 'Request Health Check'}</span>
