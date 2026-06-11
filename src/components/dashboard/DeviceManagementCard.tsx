@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Battery, MapPin, RefreshCw, Smartphone } from 'lucide-react';
 import type { Device } from '@/lib/types';
-import { isDeviceOnline, formatRelative } from '@/lib/utils';
+import { isDeviceOnline, formatRelative, getDeviceSyncStatusMessage } from '@/lib/utils';
 import { StatusChip } from './StatusChip';
 import { BatteryBar } from './BatteryBar';
 import { useDeviceCommands } from '@/lib/hooks/useDeviceCommands';
@@ -41,6 +41,7 @@ export function DeviceManagementCard({
   const online = isDeviceOnline(device.last_seen);
   const battery = device.battery_level ?? 0;
   const childLabel = device.child_name || device.device_name || 'Device';
+  const syncStatusMessage = getDeviceSyncStatusMessage(device.sync_status);
 
   const showMessage = (text: string, type: 'success' | 'error' | 'info') => {
     setMessage(text);
@@ -99,6 +100,19 @@ export function DeviceManagementCard({
         </div>
 
         <BatteryBar level={battery} />
+
+        {syncStatusMessage && (
+          <div className="rounded-xl bg-amber-500/10 px-3.5 py-3 text-xs leading-relaxed text-amber-200 ring-1 ring-amber-500/20 sm:text-sm">
+            {syncStatusMessage}
+          </div>
+        )}
+
+        {!online && !syncStatusMessage && (
+          <div className="rounded-xl bg-slate-800/50 px-3.5 py-3 text-xs leading-relaxed text-slate-400 ring-1 ring-slate-700/50 sm:text-sm">
+            Device is offline. Check the child phone: keep Family Monitor visible, battery set to
+            Unrestricted, and removed from Sleeping apps (Samsung).
+          </div>
+        )}
 
         <div className="portal-gap-grid grid gap-2.5">
           <button

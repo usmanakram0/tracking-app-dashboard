@@ -25,6 +25,7 @@ export type Device = {
   sms_sync_started_at: string | null;
   sms_sync_status: 'active' | 'paused_storage_full' | 'paused_permission' | null;
   sms_permission_granted: boolean | null;
+  sync_status: 'active' | 'battery_restricted' | 'service_stopped' | null;
 };
 
 export type NotificationLog = {

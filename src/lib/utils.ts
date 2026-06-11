@@ -36,6 +36,18 @@ export function isDeviceOnline(lastSeen: string | null | undefined): boolean {
   }
 }
 
+export function getDeviceSyncStatusMessage(
+  syncStatus: string | null | undefined
+): string | null {
+  if (syncStatus === 'battery_restricted') {
+    return 'Battery optimization may be blocking background sync. On the child phone: set Family Monitor to Unrestricted and remove it from Sleeping / Deep sleeping apps (Samsung).';
+  }
+  if (syncStatus === 'service_stopped') {
+    return 'The monitoring service appears stopped on the child phone. Open Family Monitor or reboot the device.';
+  }
+  return null;
+}
+
 export function getNotificationFullText(notification: {
   big_text?: string | null;
   message?: string | null;
