@@ -14,7 +14,6 @@
 /build
 
 # Env & secrets
-.env*
 !.env.example
 
 # Debug
@@ -27,7 +26,6 @@ yarn-error.log*
 .DS_Store
 *.pem
 .idea/
-.vscode/
 *.tsbuildinfo
 next-env.d.ts
 
@@ -38,3 +36,7 @@ next-env.d.ts
 GOOGLE_AI_STUDIO_*.md
 supabase/
 /dashboard/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+config.bat
